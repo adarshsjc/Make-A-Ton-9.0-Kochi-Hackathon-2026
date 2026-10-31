@@ -906,3 +906,20 @@ input:focus, select:focus, textarea:focus {
     align-items: flex-start;
   }
 }
+/* Account forms also render textareas for billing addresses. */
+.auth-card textarea, .form-group textarea, textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font: inherit;
+  outline: none;
+  resize: vertical;
+  background-color: #FFFFFF;
+  color: var(--text-primary);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.auth-card textarea:focus, .form-group textarea:focus, textarea:focus {
+  border-color: var(--brand-black);
+  box-shadow: 0 0 0 3px rgba(14, 16, 21, 0.08);
+}

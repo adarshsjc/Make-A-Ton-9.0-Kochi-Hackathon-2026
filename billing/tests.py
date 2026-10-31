@@ -868,11 +868,22 @@ class HtmlViewPermissionTests(TestCase):
         resp = c.get(reverse("billing-invoice-list"))
         self.assertRedirects(resp, "/accounts/login/?next=" + reverse("billing-invoice-list"))
 
-    def test_invoice_list_forbidden_for_customer(self):
+    def test_invoice_list_customer_sees_only_own_invoices(self):
+        other_customer = _make_customer("other-invoice-owner@test.local")
+        other_subscription = _make_subscription(other_customer, self.plan, self.admin)
+        other_invoice, _ = generate_invoice_for_subscription(other_subscription.id)
+
         c = Client()
         c.force_login(self.customer)
         resp = c.get(reverse("billing-invoice-list"))
-        self.assertEqual(resp.status_code, 403)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, self.invoice.number)
+        self.assertNotContains(resp, other_invoice.number)
+        self.assertNotContains(resp, other_customer.email)
+        self.assertNotContains(resp, "Finance overview")
+        self.assertNotContains(resp, "Discounts")
+        self.assertNotContains(resp, "Run billing")
 
     def test_invoice_list_accessible_to_staff(self):
         c = Client()

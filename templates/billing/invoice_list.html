@@ -1,17 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Customer Invoices{% endblock %}
-{% block breadcrumb %}Invoices{% endblock %}
+{% block title %}{% if is_customer %}My Invoices{% else %}Customer Invoices{% endif %} · BrightLoop{% endblock %}
+{% block breadcrumb %}{% if is_customer %}My Invoices{% else %}Invoices{% endif %}{% endblock %}
 
 {% block content %}
 <section class="page-heading">
   <div class="page-title-group">
     <div class="eyebrow">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-      ACCOUNTS RECEIVABLE
+      {% if is_customer %}CUSTOMER BILLING{% else %}ACCOUNTS RECEIVABLE{% endif %}
     </div>
-    <h1>Customer Invoices</h1>
-    <p class="muted">Manage recurring subscription invoices, view payment balances, and track collection statuses.</p>
+    <h1>{% if is_customer %}My invoices{% else %}Customer Invoices{% endif %}</h1>
+    <p class="muted">
+      {% if is_customer %}
+        Invoices issued for your subscriptions.
+      {% else %}
+        Manage recurring subscription invoices, view payment balances, and track collection statuses.
+      {% endif %}
+    </p>
   </div>
+  {% if not is_customer %}
   <div class="heading-actions">
     {% if request.user.role != "CUSTOMER" or request.user.is_superuser %}
       <form method="post" action="{% url 'billing-run' %}">
@@ -26,6 +33,7 @@
     <a class="button button-secondary" href="{% url 'finance-dashboard' %}">Finance Overview</a>
     <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Discounts</a>
   </div>
+  {% endif %}
 </section>
 
 <!-- Filter Toolbar -->
@@ -77,12 +85,12 @@
       <thead>
         <tr>
           <th>Invoice #</th>
-          <th>Customer</th>
+          {% if not is_customer %}<th>Customer</th>{% endif %}
           <th>Subscription</th>
           <th>Issue Date</th>
           <th>Due Date</th>
           <th>Total Amount</th>
-          <th>Paid</th>
+          {% if not is_customer %}<th>Paid</th>{% endif %}
           <th>Balance Due</th>
           <th>Status</th>
           <th>Action</th>
@@ -91,11 +99,17 @@
       <tbody>
         {% for invoice in invoices %}
         <tr>
-          <td><strong class="mono">{{ invoice.number }}</strong></td>
+          <td>
+            <a href="{% url 'billing-invoice-detail' invoice.pk %}" class="mono" style="font-weight:700; color:var(--text-primary);">
+              {{ invoice.number }}
+            </a>
+          </td>
+          {% if not is_customer %}
           <td>
             <strong>{{ invoice.customer.full_name|default:invoice.customer.email }}</strong>
             <div class="muted small">{{ invoice.customer.email }}</div>
           </td>
+          {% endif %}
           <td>
             <a href="{% url 'subscription-detail' invoice.subscription_id %}" class="mono muted">
               {{ invoice.subscription.number }}
@@ -103,14 +117,16 @@
           </td>
           <td>{{ invoice.issue_date }}</td>
           <td>
-            <span {% if invoice.is_overdue %}style="color:var(--warning); font-weight:700;"{% endif %}>
+            <span {% if invoice.is_overdue %}style="color:var(--danger); font-weight:700;"{% endif %}>
               {{ invoice.due_date }}
             </span>
           </td>
           <td><strong>₹{{ invoice.total }}</strong></td>
-          <td style="color:var(--teal-accent);">₹{{ invoice.amount_paid }}</td>
+          {% if not is_customer %}
+            <td style="color:var(--teal-accent);">₹{{ invoice.amount_paid }}</td>
+          {% endif %}
           <td>
-            <strong {% if invoice.balance_due > 0 and invoice.is_overdue %}style="color:var(--warning);"{% endif %}>
+            <strong {% if invoice.balance_due > 0 and invoice.is_overdue %}style="color:var(--danger);"{% endif %}>
               ₹{{ invoice.balance_due }}
             </strong>
           </td>
@@ -130,7 +146,7 @@
         <tr>
           <td colspan="10" class="empty-state">
             <div class="empty-state-icon">▤</div>
-            <div class="empty-state-text">No matching invoices found. Adjust your search filters or run billing.</div>
+            <div class="empty-state-text">No invoices match your filters.</div>
           </td>
         </tr>
         {% endfor %}

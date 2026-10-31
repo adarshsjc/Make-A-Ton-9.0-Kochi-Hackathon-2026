@@ -13,6 +13,11 @@
 
     <form method="post">
       {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="form-errors" style="background:var(--danger-soft); color:var(--danger); padding:10px 14px; border-radius:var(--radius-md); font-size:12px; margin-bottom:14px;">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
       {% for field in form %}
         <div class="form-group">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -31,7 +36,7 @@
       </div>
 
       <button class="button button-primary" type="submit" style="width: 100%; padding: 12px; font-size: 14px;">
-        Complete Registration
+        Create Account
       </button>
     </form>
 
