@@ -1,19 +1,37 @@
 {% extends "base.html" %}
 {% block title %}Delete Discount Rule{% endblock %}
+{% block breadcrumb %}Discounts / Delete{% endblock %}
+
 {% block content %}
 <section class="page-heading">
-  <div>
-    <p class="eyebrow">DISCOUNT RULES</p>
-    <h1>Delete rule</h1>
+  <div class="page-title-group">
+    <div class="eyebrow" style="color:var(--danger);">
+      CONFIRMATION REQUIRED
+    </div>
+    <h1>Delete Discount Rule</h1>
+    <p class="muted">Are you sure you want to permanently remove this discount policy?</p>
   </div>
 </section>
-<div class="auth-card" style="max-width:480px">
-  <p>Are you sure you want to permanently delete the discount rule <strong>"{{ rule.name }}"</strong>?</p>
-  <p class="muted small">This action cannot be undone. Rules that have been redeemed cannot be deleted — deactivate them instead.</p>
-  <form method="post" style="display:flex;gap:10px;margin-top:18px">
-    {% csrf_token %}
-    <button class="button button-primary" type="submit" style="background:#a83232;border-color:#a83232">Delete permanently</button>
-    <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Cancel</a>
-  </form>
+
+<div style="max-width: 520px; margin: 30px auto;">
+  <section class="card">
+    <div class="panel-heading">
+      <h2>Warning: Deletion is Permanent</h2>
+    </div>
+    <p style="margin-bottom: 16px;">
+      You are about to delete discount rule: <strong>{{ rule.name }}</strong> ({{ rule.get_discount_type_display }}: {{ rule.value }}).
+    </p>
+    <div class="message error" style="margin-bottom: 20px;">
+      This action cannot be undone. Invoices already generated will keep their discount snapshots, but future billing runs will not apply this rule.
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Cancel</a>
+        <button class="button button-danger" type="submit">Yes, Delete Rule</button>
+      </div>
+    </form>
+  </section>
 </div>
 {% endblock %}

@@ -1,105 +1,100 @@
 {% extends "base.html" %}
-{% block title %}{{ action }} Discount Rule{% endblock %}
+{% block title %}{% if is_create %}New Discount Rule{% else %}Edit {{ form.instance.name }}{% endif %}{% endblock %}
+{% block breadcrumb %}Discounts / {% if is_create %}New{% else %}Edit{% endif %}{% endblock %}
+
 {% block content %}
 <section class="page-heading">
-  <div>
-    <p class="eyebrow">DISCOUNT RULES</p>
-    <h1>{{ action }} discount rule</h1>
-    {% if rule %}<p class="muted">{{ rule.name }}</p>{% endif %}
+  <div class="page-title-group">
+    <div class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path></svg>
+      PROMOTION POLICIES
+    </div>
+    <h1>{% if is_create %}Create Discount Rule{% else %}Edit {{ form.instance.name }}{% endif %}</h1>
+    <p class="muted">Define automated deduction logic and eligibility windows for recurring invoices.</p>
   </div>
   <div class="heading-actions">
-    <a class="button button-secondary" href="{% url 'billing-discount-list' %}">← Back to rules</a>
+    <a href="{% url 'billing-discount-list' %}" class="button button-secondary">← Back to Discounts</a>
   </div>
 </section>
 
-<div class="auth-card" style="max-width:620px">
-  <form method="post">
-    {% csrf_token %}
-    {% if form.errors %}
-    <div class="form-errors" style="margin-bottom:14px">
-      Please correct the errors below.
-    </div>
-    {% endif %}
+<div style="max-width: 680px; margin: 0 auto;">
+  <section class="card">
+    <form method="post">
+      {% csrf_token %}
 
-    <label>Name *
-      {{ form.name }}
-      {% if form.name.errors %}<div class="field-error">{{ form.name.errors.0 }}</div>{% endif %}
-    </label>
+      {% if form.non_field_errors %}
+        <div class="message error">{{ form.non_field_errors }}</div>
+      {% endif %}
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <label>Discount type *
-        {{ form.discount_type }}
-        {% if form.discount_type.errors %}<div class="field-error">{{ form.discount_type.errors.0 }}</div>{% endif %}
-      </label>
-      <label>Value *
-        {{ form.value }}
-        {% if form.value.errors %}<div class="field-error">{{ form.value.errors.0 }}</div>{% endif %}
-      </label>
-    </div>
-
-    <label>Scope *
-      {{ form.scope }}
-      {% if form.scope.errors %}<div class="field-error">{{ form.scope.errors.0 }}</div>{% endif %}
-    </label>
-
-    <label style="margin-top:14px">
-      Products <small class="muted">(required when scope is "Selected products")</small>
-      <div style="max-height:180px;overflow-y:auto;border:1px solid #d9e2df;border-radius:8px;padding:10px;margin-top:6px">
-        {% for checkbox in form.products %}
-          <div style="margin-bottom:4px">{{ checkbox }}</div>
-        {% empty %}
-          <span class="muted small">No active products.</span>
-        {% endfor %}
+      <div class="form-group">
+        <label>Rule Title / Name</label>
+        {{ form.name }}
+        {{ form.name.errors }}
       </div>
-      {% if form.products.errors %}<div class="field-error">{{ form.products.errors.0 }}</div>{% endif %}
-    </label>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <label>Minimum purchase (₹)
-        {{ form.minimum_purchase }}
-        {% if form.minimum_purchase.errors %}<div class="field-error">{{ form.minimum_purchase.errors.0 }}</div>{% endif %}
-      </label>
-      <label>Minimum quantity
-        {{ form.minimum_quantity }}
-        {% if form.minimum_quantity.errors %}<div class="field-error">{{ form.minimum_quantity.errors.0 }}</div>{% endif %}
-      </label>
-    </div>
+      <div class="form-group">
+        <label>Description</label>
+        {{ form.description }}
+        {{ form.description.errors }}
+      </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <label>Valid from *
-        {{ form.valid_from }}
-        {% if form.valid_from.errors %}<div class="field-error">{{ form.valid_from.errors.0 }}</div>{% endif %}
-      </label>
-      <label>Valid until <small class="muted">(leave blank = no expiry)</small>
-        {{ form.valid_until }}
-        {% if form.valid_until.errors %}<div class="field-error">{{ form.valid_until.errors.0 }}</div>{% endif %}
-      </label>
-    </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div class="form-group">
+          <label>Discount Type</label>
+          {{ form.discount_type }}
+          {{ form.discount_type.errors }}
+        </div>
+        <div class="form-group">
+          <label>Deduction Value (% or ₹)</label>
+          {{ form.value }}
+          {{ form.value.errors }}
+        </div>
+      </div>
 
-    <label>Max uses <small class="muted">(leave blank = unlimited)</small>
-      {{ form.max_uses }}
-      {% if form.max_uses.errors %}<div class="field-error">{{ form.max_uses.errors.0 }}</div>{% endif %}
-    </label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div class="form-group">
+          <label>Applicable Scope</label>
+          {{ form.scope }}
+          {{ form.scope.errors }}
+        </div>
+        <div class="form-group">
+          <label>Min. Invoice Value (₹)</label>
+          {{ form.minimum_invoice_amount }}
+          {{ form.minimum_invoice_amount.errors }}
+        </div>
+      </div>
 
-    <label style="margin-top:14px;display:flex;align-items:center;gap:8px">
-      {{ form.is_active }} Active
-    </label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div class="form-group">
+          <label>Valid From</label>
+          {{ form.valid_from }}
+          {{ form.valid_from.errors }}
+        </div>
+        <div class="form-group">
+          <label>Valid Until</label>
+          {{ form.valid_until }}
+          {{ form.valid_until.errors }}
+        </div>
+      </div>
 
-    {% if form.non_field_errors %}
-    <div class="field-error" style="margin-top:10px">{{ form.non_field_errors }}</div>
-    {% endif %}
+      <div class="form-group">
+        <label>Maximum Global Uses</label>
+        {{ form.max_uses }}
+        {{ form.max_uses.errors }}
+      </div>
 
-    <div style="display:flex;gap:10px;margin-top:18px">
-      <button class="button button-primary" type="submit">{{ action }} rule</button>
-      <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Cancel</a>
-    </div>
-  </form>
+      <div class="form-group" style="padding:12px; background:var(--surface-subtle); border:1px solid var(--border-color); border-radius:8px;">
+        <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;">
+          {{ form.is_active }} Enable and Activate This Rule
+        </label>
+        {{ form.is_active.errors }}
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <a href="{% url 'billing-discount-list' %}" class="button button-secondary">Cancel</a>
+        <button class="button button-primary" type="submit">{% if is_create %}Create Rule{% else %}Save Changes{% endif %}</button>
+      </div>
+    </form>
+  </section>
 </div>
-
-<style>
-  .auth-card input[type=text],.auth-card input[type=number],.auth-card input[type=date],.auth-card select,.auth-card textarea {
-    width:100%;padding:10px 12px;border:1px solid #d9e2df;border-radius:8px;font:inherit;margin-top:5px;outline:none;box-sizing:border-box;
-  }
-  .auth-card input:focus,.auth-card select:focus,.auth-card textarea:focus { border-color:var(--brand);box-shadow:0 0 0 3px #087f7017; }
-</style>
 {% endblock %}

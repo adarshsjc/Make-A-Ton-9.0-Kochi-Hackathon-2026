@@ -1,15 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Sign in{% endblock %}
+{% block title %}Sign In · BrightLoop{% endblock %}
+
 {% block content %}
-<section class="auth-card">
-  <p class="eyebrow">WELCOME BACK</p><h1>Sign in to Brightloop</h1><p class="muted">Manage subscriptions, billing and customer accounts.</p>
-  <form method="post">{% csrf_token %}
-    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
-    <label for="id_username">Email address</label>{{ form.username }}{{ form.username.errors }}
-    <label for="id_password">Password</label>{{ form.password }}{{ form.password.errors }}
-    <input type="hidden" name="next" value="{{ next }}">
-    <button class="button button-primary button-full" type="submit">Sign in</button>
-  </form>
-  <div class="auth-links"><a href="{% url 'password_reset' %}">Forgot password?</a><a href="{% url 'register' %}">Create customer account</a></div>
-</section>
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+  <section class="card" style="width: 100%; max-width: 440px; padding: 40px; border-radius: var(--radius-xl); box-shadow: var(--shadow-hover); border-color: var(--border-color);">
+    <div style="text-align: center; margin-bottom: 26px;">
+      <div class="brand-logo" style="margin: 0 auto 14px; width: 44px; height: 44px; font-size: 20px;">B</div>
+      <div class="eyebrow" style="justify-content: center;">SECURE CLIENT PORTAL</div>
+      <h1 style="font-size: 24px; margin-bottom: 6px;">Sign in to BrightLoop</h1>
+      <p class="muted small">Access your subscriptions, invoices, and payment statements.</p>
+    </div>
+
+    {% if form.non_field_errors %}
+      <div class="message error" style="margin-bottom: 18px;">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_username">Email Address</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="muted small" style="color:var(--danger); margin-top:4px;">{{ form.username.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
+          <label for="id_password" style="margin:0;">Password</label>
+          <a href="{% url 'password_reset' %}" class="small muted" style="text-decoration:none;">Forgot password?</a>
+        </div>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <div class="muted small" style="color:var(--danger); margin-top:4px;">{{ form.password.errors }}</div>
+        {% endif %}
+      </div>
+
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <button class="button button-primary" type="submit" style="width: 100%; padding: 12px; margin-top: 8px; font-size: 14px;">
+        Sign In to Portal
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-light); font-size: 13px;">
+      <span class="muted">Don't have an account?</span>
+      <a href="{% url 'register' %}" style="font-weight: 700; color: var(--text-primary); margin-left: 4px;">Register as Customer →</a>
+    </div>
+  </section>
+</div>
 {% endblock %}

@@ -1,7 +1,44 @@
-{% extends "base.html" %}{% block title %}Create account{% endblock %}
-{% block content %}<section class="auth-card"><p class="eyebrow">CUSTOMER PORTAL</p><h1>Create your account</h1>
-<form method="post">{% csrf_token %}
-  {% for field in form %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="field-error">{{ field.errors }}</div>{% endif %}{% endfor %}
-  <p class="muted small">Password must be at least 9 characters and include uppercase, lowercase and a special character.</p>
-  <button class="button button-primary button-full" type="submit">Create account</button>
-</form><div class="auth-links"><a href="{% url 'login' %}">Already registered? Sign in</a></div></section>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Create Customer Account · BrightLoop{% endblock %}
+
+{% block content %}
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+  <section class="card" style="width: 100%; max-width: 480px; padding: 40px; border-radius: var(--radius-xl); box-shadow: var(--shadow-hover); border-color: var(--border-color);">
+    <div style="text-align: center; margin-bottom: 26px;">
+      <div class="brand-logo" style="margin: 0 auto 14px; width: 44px; height: 44px; font-size: 20px;">B</div>
+      <div class="eyebrow" style="justify-content: center;">NEW CUSTOMER REGISTRATION</div>
+      <h1 style="font-size: 24px; margin-bottom: 6px;">Create Your Account</h1>
+      <p class="muted small">Set up self-service access to manage company subscriptions and invoices.</p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="muted small" style="color:var(--danger); margin-top:4px;">{{ field.errors }}</div>
+          {% endif %}
+          {% if field.help_text %}
+            <div class="muted small" style="margin-top:4px;">{{ field.help_text }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <div style="background:var(--surface-subtle); padding:12px 14px; border-radius:var(--radius-md); font-size:12px; color:var(--text-secondary); margin-bottom:18px;">
+        🔒 Passwords must be at least 9 characters and include uppercase, lowercase, and a symbol.
+      </div>
+
+      <button class="button button-primary" type="submit" style="width: 100%; padding: 12px; font-size: 14px;">
+        Complete Registration
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-light); font-size: 13px;">
+      <span class="muted">Already registered?</span>
+      <a href="{% url 'login' %}" style="font-weight: 700; color: var(--text-primary); margin-left: 4px;">Sign in to Portal →</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

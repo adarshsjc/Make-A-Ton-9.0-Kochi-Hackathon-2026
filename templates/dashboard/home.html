@@ -1,26 +1,352 @@
 {% extends "base.html" %}
-{% block title %}Overview{% endblock %}
+{% block title %}Business Overview{% endblock %}
+{% block breadcrumb %}Business Overview{% endblock %}
+
 {% block content %}
-<section class="page-heading"><div><p class="eyebrow">{% if is_customer %}CUSTOMER PORTAL{% else %}BUSINESS OVERVIEW{% endif %}</p><h1>{% if is_customer %}Welcome, {{ request.user.full_name }}{% else %}Subscription overview{% endif %}</h1><p class="muted">{% if is_customer %}Your subscriptions and invoices in one place.{% else %}A live view of subscription activity and billing performance.{% endif %}</p></div><div class="heading-actions">{% if not is_customer %}<form method="post" action="/billing/run/">{% csrf_token %}<button class="button button-primary" type="submit">Run due billing</button></form>{% if request.user.is_superuser %}<a class="button button-secondary" href="/admin/">Open admin</a>{% endif %}{% endif %}</div></section>
+<section class="page-heading">
+  <div class="page-title-group">
+    <div class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      {% if is_customer %}CLIENT PORTAL{% else %}EXECUTIVE SUMMARY{% endif %}
+    </div>
+    <h1>{% if is_customer %}Welcome back, {{ request.user.full_name|default:request.user.email }}{% else %}Business Overview{% endif %}</h1>
+    <p class="muted">
+      {% if is_customer %}
+        Monitor your active subscriptions, billing schedules, and recent payment history.
+      {% else %}
+        Subscription overview of revenue, active client contracts, and recurring billing cycles.
+      {% endif %}
+    </p>
+  </div>
+  <div class="heading-actions">
+    {% if not is_customer %}
+      <form method="post" action="{% url 'billing-run' %}">
+        {% csrf_token %}
+        <button class="button button-teal" type="submit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Run Due Billing
+        </button>
+      </form>
+      <a class="button button-primary" href="{% url 'quotation-create' %}">+ New Quotation</a>
+      {% if request.user.is_superuser %}
+        <a class="button button-secondary" href="/admin/" target="_blank">Admin Console ↗</a>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+
 {% if is_customer %}
-  <section class="panel"><div class="panel-heading"><h2>Your subscriptions</h2><span class="muted small">Latest 8</span></div><div class="table-wrap"><table><thead><tr><th>Number</th><th>Plan</th><th>Status</th><th>Next billing</th></tr></thead><tbody>{% for sub in customer_subscriptions %}<tr><td>{{ sub.number }}</td><td>{{ sub.plan.name }}</td><td><span class="status">{{ sub.get_status_display }}</span></td><td>{{ sub.next_billing_date|default:"—" }}</td></tr>{% empty %}<tr><td colspan="4" class="empty">No subscriptions yet.</td></tr>{% endfor %}</tbody></table></div></section>
-  <section class="panel"><div class="panel-heading"><h2>Your invoices</h2><span class="muted small">Latest 8</span></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for invoice in customer_invoices %}<tr><td>{{ invoice.number }}</td><td>{{ invoice.issue_date }}</td><td>{{ invoice.due_date }}</td><td>₹{{ invoice.total }}</td><td>{{ invoice.get_status_display }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">No invoices yet.</td></tr>{% endfor %}</tbody></table></div></section>
+  <!-- Customer Dashboard Views -->
+  <section class="panel">
+    <div class="panel-heading">
+      <h2>Your Subscriptions</h2>
+      <a href="{% url 'subscription-list' %}" class="button button-quiet button-sm">View All Subscriptions →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Subscription #</th>
+            <th>Plan</th>
+            <th>Status</th>
+            <th>Next Billing</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in customer_subscriptions %}
+          <tr>
+            <td><strong class="mono">{{ sub.number }}</strong></td>
+            <td><strong>{{ sub.plan.name }}</strong></td>
+            <td>
+              <span class="badge {% if sub.status == 'ACTIVE' %}status-active{% elif sub.status == 'PAUSED' %}status-warning{% elif sub.status == 'CLOSED' %}status-danger{% else %}status-draft{% endif %}">
+                {{ sub.get_status_display }}
+              </span>
+            </td>
+            <td>{{ sub.next_billing_date|default:"—" }}</td>
+            <td>
+              <a href="{% url 'subscription-detail' pk=sub.id %}" class="button button-secondary button-sm">Manage →</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="empty-state">
+              <div class="empty-state-icon">◷</div>
+              <div class="empty-state-text">No active subscriptions found for your account.</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="invoices-section">
+    <div class="panel-heading">
+      <h2>Recent Invoices</h2>
+      <a href="{% url 'billing-invoice-list' %}" class="button button-quiet button-sm">View All Invoices →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in customer_invoices %}
+          <tr>
+            <td><strong class="mono">{{ invoice.number }}</strong></td>
+            <td>{{ invoice.issue_date }}</td>
+            <td>{{ invoice.due_date }}</td>
+            <td><strong>₹{{ invoice.total }}</strong></td>
+            <td>
+              <span class="badge {% if invoice.status == 'PAID' %}status-paid{% elif invoice.status == 'CONFIRMED' %}status-warning{% elif invoice.status == 'CANCELLED' %}status-danger{% else %}status-draft{% endif %}">
+                {{ invoice.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <a href="{% url 'billing-invoice-detail' invoice.pk %}" class="button button-secondary button-sm">View Invoice →</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="empty-state">
+              <div class="empty-state-icon">▤</div>
+              <div class="empty-state-text">No invoices generated for your account yet.</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
 {% else %}
+  <!-- Admin / Staff Executive Overview -->
   <section class="metric-grid">
-    <article class="metric-card"><span>Active subscriptions</span><strong>{{ active_subscriptions|default:0 }}</strong><small>Currently active</small></article>
-    <article class="metric-card"><span>Revenue collected</span><strong>₹{{ revenue_collected|default:"0.00" }}</strong><small>Recorded payments</small></article>
-    <article class="metric-card"><span>Outstanding</span><strong>₹{{ outstanding_amount|default:"0.00" }}</strong><small>Unpaid confirmed invoices</small></article>
-    <article class="metric-card metric-warning"><span>Overdue</span><strong>₹{{ overdue_amount|default:"0.00" }}</strong><small>{{ overdue_invoice_count|default:0 }} invoices overdue</small></article>
+    <article class="metric-card">
+      <div class="metric-card-top">
+        <span class="metric-title">Active Subscriptions</span>
+        <div class="metric-icon-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+      </div>
+      <div class="metric-card-value">{{ active_subscriptions|default:0 }}</div>
+      <div class="metric-footer">
+        <span class="badge status-active">Live Contracts</span>
+        <span>Ongoing subscriptions</span>
+      </div>
+    </article>
+
+    <article class="metric-card">
+      <div class="metric-card-top">
+        <span class="metric-title">Revenue Collected</span>
+        <div class="metric-icon-wrap" style="background:var(--teal-soft); color:var(--teal-accent);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+      </div>
+      <div class="metric-card-value">₹{{ revenue_collected|default:"0.00" }}</div>
+      <div class="metric-footer">
+        <span class="badge status-paid">Settled</span>
+        <span>Recorded payments</span>
+      </div>
+    </article>
+
+    <article class="metric-card">
+      <div class="metric-card-top">
+        <span class="metric-title">Outstanding Invoices</span>
+        <div class="metric-icon-wrap" style="background:var(--blue-soft); color:var(--blue-primary);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        </div>
+      </div>
+      <div class="metric-card-value">₹{{ outstanding_amount|default:"0.00" }}</div>
+      <div class="metric-footer">
+        <span class="badge status-draft">Receivable</span>
+        <span>Confirmed pending payments</span>
+      </div>
+    </article>
+
+    <article class="metric-card {% if overdue_amount > 0 %}metric-warning{% endif %}">
+      <div class="metric-card-top">
+        <span class="metric-title">Overdue Invoices</span>
+        <div class="metric-icon-wrap" style="background:var(--warning-soft); color:var(--warning);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+      </div>
+      <div class="metric-card-value">₹{{ overdue_amount|default:"0.00" }}</div>
+      <div class="metric-footer">
+        <span class="badge status-warning">{{ overdue_invoice_count|default:0 }} Overdue</span>
+        <span>Requires follow-up</span>
+      </div>
+    </article>
   </section>
-  <section class="quick-grid">
-    <a class="quick-card" href="/api/v1/products/"><span class="quick-icon">▦</span><strong>Products</strong><small>Catalogue API and records</small></a>
-    <a class="quick-card" href="/api/v1/plans/"><span class="quick-icon">↻</span><strong>Plans</strong><small>Recurring plan catalogue</small></a>
-    <a class="quick-card" href="/api/v1/subscriptions/"><span class="quick-icon">◷</span><strong>Subscriptions</strong><small>Customer subscriptions and lifecycle</small></a>
-    <a class="quick-card" href="{% url 'billing-invoice-list' %}"><span class="quick-icon">▤</span><strong>Invoices</strong><small>Manage invoices and payments</small></a>
-    <a class="quick-card" href="{% url 'billing-discount-list' %}"><span class="quick-icon">⊟</span><strong>Discounts</strong><small>Discount rules and usage</small></a>
-    <a class="quick-card" href="{% url 'finance-dashboard' %}"><span class="quick-icon">₹</span><strong>Finance</strong><small>Revenue summary and filters</small></a>
+
+  <!-- Quick Access Navigation Hub -->
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px;">
+    <a class="card" href="{% url 'catalog-product-list' %}" style="display:flex; align-items:center; gap:12px; padding:16px; text-decoration:none; color:inherit; margin:0;">
+      <div style="width:36px; height:36px; border-radius:8px; background:var(--blue-soft); color:var(--blue-primary); display:flex; align-items:center; justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+      </div>
+      <div>
+        <strong style="display:block; font-size:13px;">Products</strong>
+        <span class="muted small">Catalog items</span>
+      </div>
+    </a>
+
+    <a class="card" href="{% url 'catalog-plan-list' %}" style="display:flex; align-items:center; gap:12px; padding:16px; text-decoration:none; color:inherit; margin:0;">
+      <div style="width:36px; height:36px; border-radius:8px; background:var(--teal-soft); color:var(--teal-accent); display:flex; align-items:center; justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+      </div>
+      <div>
+        <strong style="display:block; font-size:13px;">Plans</strong>
+        <span class="muted small">Billing cycles</span>
+      </div>
+    </a>
+
+    <a class="card" href="{% url 'subscription-list' %}" style="display:flex; align-items:center; gap:12px; padding:16px; text-decoration:none; color:inherit; margin:0;">
+      <div style="width:36px; height:36px; border-radius:8px; background:var(--navy-surface); color:var(--blue-soft); display:flex; align-items:center; justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+      <div>
+        <strong style="display:block; font-size:13px;">Subscriptions</strong>
+        <span class="muted small">Active contracts</span>
+      </div>
+    </a>
+
+    <a class="card" href="{% url 'billing-invoice-list' %}" style="display:flex; align-items:center; gap:12px; padding:16px; text-decoration:none; color:inherit; margin:0;">
+      <div style="width:36px; height:36px; border-radius:8px; background:var(--blue-soft); color:var(--blue-primary); display:flex; align-items:center; justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      </div>
+      <div>
+        <strong style="display:block; font-size:13px;">Invoices</strong>
+        <span class="muted small">Payment records</span>
+      </div>
+    </a>
+
+    <a class="card" href="{% url 'finance-dashboard' %}" style="display:flex; align-items:center; gap:12px; padding:16px; text-decoration:none; color:inherit; margin:0;">
+      <div style="width:36px; height:36px; border-radius:8px; background:var(--teal-soft); color:var(--teal-accent); display:flex; align-items:center; justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      </div>
+      <div>
+        <strong style="display:block; font-size:13px;">Finance</strong>
+        <span class="muted small">Analytics & filters</span>
+      </div>
+    </a>
+  </div>
+
+  <!-- Visual Analytics Section (AETHER Inspired Data Visualization) -->
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-bottom: 24px;">
+    <!-- Revenue Breakdown Donut -->
+    <section class="card" style="margin: 0;">
+      <div class="panel-heading">
+        <div>
+          <h2>Revenue Distribution</h2>
+          <span class="muted small">Reconciled cash vs accounts receivable pool</span>
+        </div>
+      </div>
+      <div id="revenueDonut" style="min-height: 180px; display:flex; align-items:center; justify-content:center;"></div>
+    </section>
+
+    <!-- Recent Billing Pill Bars -->
+    <section class="card" style="margin: 0;">
+      <div class="panel-heading">
+        <div>
+          <h2>Recent Billing Volume</h2>
+          <span class="muted small">Activity across latest generated customer invoices</span>
+        </div>
+      </div>
+      <div id="invoicePillBars" style="min-height: 180px; display:flex; align-items:center; justify-content:center;"></div>
+    </section>
+  </div>
+
+  <!-- Recent Invoices Panel -->
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Recent Billing Activity</h2>
+        <span class="muted small">Latest customer invoices across all subscription plans</span>
+      </div>
+      <a href="{% url 'billing-invoice-list' %}" class="button button-secondary button-sm">View All Invoices →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Customer</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in recent_invoices %}
+          <tr>
+            <td><strong class="mono">{{ invoice.number }}</strong></td>
+            <td>
+              <strong>{{ invoice.customer.full_name|default:invoice.customer.email }}</strong>
+              <div class="muted small">{{ invoice.customer.email }}</div>
+            </td>
+            <td>{{ invoice.issue_date }}</td>
+            <td>
+              <span {% if invoice.is_overdue %}style="color:var(--warning); font-weight:700;"{% endif %}>
+                {{ invoice.due_date }}
+              </span>
+            </td>
+            <td><strong>₹{{ invoice.total }}</strong></td>
+            <td>
+              <span class="badge {% if invoice.status == 'PAID' %}status-paid{% elif invoice.status == 'CONFIRMED' %}status-warning{% elif invoice.status == 'CANCELLED' %}status-danger{% else %}status-draft{% endif %}">
+                {{ invoice.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <a href="{% url 'billing-invoice-detail' invoice.pk %}" class="button button-quiet button-sm">Details →</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="empty-state">
+              <div class="empty-state-icon">⚡</div>
+              <div class="empty-state-text">No invoices found. Click <strong>Run Due Billing</strong> or generate a custom quotation to initiate billing.</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </section>
-  <section class="panel"><div class="panel-heading"><h2>Recent invoices</h2><a href="{% url 'billing-invoice-list' %}" class="text-link">View all →</a></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for invoice in recent_invoices %}<tr><td>{{ invoice.number }}</td><td>{{ invoice.customer.email }}</td><td>{{ invoice.issue_date }}</td><td>{{ invoice.due_date }}</td><td>₹{{ invoice.total }}</td><td><span class="status">{{ invoice.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6" class="empty">No invoices yet. Run the billing workflow to generate the first one.</td></tr>{% endfor %}</tbody></table></div></section>
-  <p class="hint">The dashboard reads from PostgreSQL. Use the API endpoints or Django admin to manage records while the team builds the dedicated workflows.</p>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      if (window.BrightLoopCharts) {
+        // Render Revenue Donut using real backend metrics
+        BrightLoopCharts.renderDonut('revenueDonut', [
+          { label: 'Collected', value: Number('{{ revenue_collected|default:0 }}') || 0, color: '#0D9488' },
+          { label: 'Outstanding', value: Number('{{ outstanding_amount|default:0 }}') || 0, color: '#2563EB' },
+          { label: 'Overdue', value: Number('{{ overdue_amount|default:0 }}') || 0, color: '#EF4444' }
+        ]);
+
+        // Render Recent Invoice Activity Pill Bars
+        const seriesData = [
+          {% for inv in recent_invoices %}
+            {
+              label: '{{ inv.number|slice:"-4:" }}',
+              value: Number('{{ inv.total|default:0 }}'),
+              color: '{% if inv.status == "PAID" %}#0D9488{% elif inv.status == "CONFIRMED" %}#2563EB{% else %}#0E1015{% endif %}'
+            }{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ];
+        BrightLoopCharts.renderPillBars('invoicePillBars', seriesData, { height: 140 });
+      }
+    });
+  </script>
 {% endif %}
 {% endblock %}

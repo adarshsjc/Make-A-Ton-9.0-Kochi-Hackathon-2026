@@ -1,51 +1,89 @@
 {% extends "base.html" %}
-{% block title %}Plans · Catalog{% endblock %}
+{% block title %}Subscription Plans{% endblock %}
+{% block breadcrumb %}Subscription Plans{% endblock %}
+
 {% block content %}
 <section class="page-heading">
-  <div>
-    <p class="eyebrow">CATALOG MANAGEMENT</p>
+  <div class="page-title-group">
+    <div class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+      BILLING STRUCTURE
+    </div>
     <h1>Subscription Plans</h1>
-    <p class="muted">Manage recurring subscription plans, base billing rates, interval types, and lifecycle toggles.</p>
+    <p class="muted">Configure recurring billing cadences, pricing tiers, tax associations, and lifecycle policies.</p>
   </div>
   <div class="heading-actions">
-    <a href="{% url 'dashboard-home' %}" class="button button-secondary">← Back to Overview</a>
+    <a href="{% url 'catalog-product-list' %}" class="button button-secondary">← Manage Products</a>
   </div>
 </section>
 
+<!-- Active Plans Table Panel -->
 <section class="panel">
   <div class="panel-heading">
-    <h2>All Plans</h2>
-    <span class="muted small">{{ plans|length }} plan(s)</span>
+    <div>
+      <h2>Active Subscription Plans</h2>
+      <span class="muted small">{{ plans|length }} plan(s) available for client subscriptions</span>
+    </div>
   </div>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th>Plan Name</th>
-          <th>Base Price</th>
-          <th>Billing Interval</th>
-          <th>Min Quantity</th>
-          <th>Tax</th>
-          <th>Lifecycle Rules</th>
+          <th>Recurring Price</th>
+          <th>Interval</th>
+          <th>Min Qty</th>
+          <th>Tax Association</th>
+          <th>Lifecycle Policies</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
         {% for plan in plans %}
         <tr>
-          <td><strong>{{ plan.name }}</strong><br><small class="muted">{{ plan.description|default:"No description" }}</small></td>
-          <td>₹{{ plan.price }}</td>
-          <td>{{ plan.get_billing_interval_display }}</td>
-          <td>{{ plan.minimum_quantity }}</td>
-          <td>{{ plan.tax.name|default:"None" }}</td>
           <td>
-            <span class="small">Pause: {{ plan.allow_pause|yesno:"Yes,No" }} | Renew: {{ plan.allow_renew|yesno:"Yes,No" }} | Early Close: {{ plan.allow_early_close|yesno:"Yes,No" }}</span>
+            <strong>{{ plan.name }}</strong>
+            <div class="muted small">Effective from {{ plan.available_from }}</div>
           </td>
-          <td><span class="status">{{ plan.is_active|yesno:"Active,Inactive" }}</span></td>
+          <td><strong style="font-size:15px; color:var(--blue-primary);">₹{{ plan.price }}</strong></td>
+          <td>
+            <span class="badge status-info">
+              {{ plan.get_billing_interval_display }} (x{{ plan.interval_count }})
+            </span>
+          </td>
+          <td>{{ plan.minimum_quantity }} seat(s)</td>
+          <td>
+            {% if plan.tax %}
+              <span class="badge status-paid">{{ plan.tax.name }} ({{ plan.tax.rate }}%)</span>
+            {% else %}
+              <span class="muted small">Tax Exempt (0%)</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="badge {% if plan.allow_pause %}status-active{% else %}status-draft{% endif %}">
+                Pause: {{ plan.allow_pause|yesno:"Yes,No" }}
+              </span>
+              <span class="badge {% if plan.allow_renew %}status-active{% else %}status-draft{% endif %}">
+                Renew: {{ plan.allow_renew|yesno:"Yes,No" }}
+              </span>
+              <span class="badge {% if plan.allow_early_close %}status-active{% else %}status-draft{% endif %}">
+                Close: {{ plan.allow_early_close|yesno:"Yes,No" }}
+              </span>
+            </div>
+          </td>
+          <td>
+            <span class="badge {% if plan.is_active %}status-active{% else %}status-danger{% endif %}">
+              {{ plan.is_active|yesno:"Active,Inactive" }}
+            </span>
+          </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="empty">No subscription plans found. Use the form below to create one.</td>
+          <td colspan="7" class="empty-state">
+            <div class="empty-state-icon">↻</div>
+            <div class="empty-state-text">No subscription plans created yet. Use the configuration builder below.</div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -53,58 +91,73 @@
   </div>
 </section>
 
-<section class="panel" style="max-width: 600px;">
+<!-- Create Plan Form -->
+<section class="card" style="max-width: 720px;">
   <div class="panel-heading">
-    <h2>Create New Plan</h2>
+    <div>
+      <h2>Create New Subscription Plan</h2>
+      <span class="muted small">Define billing interval and contract rules</span>
+    </div>
   </div>
-  <form method="post" action="{% url 'catalog-plan-list' %}">
+  <form method="post">
     {% csrf_token %}
-    <div style="margin-bottom: 12px;">
-      <label class="small muted" style="display:block; margin-bottom:4px;">Plan Name</label>
-      <input type="text" name="name" required style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
-    </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-      <div>
-        <label class="small muted" style="display:block; margin-bottom:4px;">Base Recurring Fee (₹)</label>
-        <input type="number" step="0.01" name="price" value="999.00" required style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+    
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+      <div class="form-group">
+        <label>Plan Name</label>
+        <input type="text" name="name" placeholder="e.g. Enterprise Cloud Tier" required>
       </div>
-      <div>
-        <label class="small muted" style="display:block; margin-bottom:4px;">Billing Interval</label>
-        <select name="billing_interval" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
-          <option value="MONTHLY">Monthly</option>
-          <option value="YEARLY">Yearly</option>
-          <option value="WEEKLY">Weekly</option>
-          <option value="DAILY">Daily</option>
-        </select>
+      <div class="form-group">
+        <label>Recurring Fee (₹)</label>
+        <input type="number" step="0.01" name="price" placeholder="1500.00" required>
       </div>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-      <div>
-        <label class="small muted" style="display:block; margin-bottom:4px;">Minimum Order Quantity</label>
-        <input type="number" name="minimum_quantity" value="1" min="1" required style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
-      </div>
-      <div>
-        <label class="small muted" style="display:block; margin-bottom:4px;">Applicable Tax</label>
-        <select name="tax_id" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
-          <option value="">No Tax</option>
-          {% for t in taxes %}
-            <option value="{{ t.id }}">{{ t.name }} ({{ t.rate }}%)</option>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+      <div class="form-group">
+        <label>Billing Cadence</label>
+        <select name="billing_interval" required>
+          {% for val, label in intervals %}
+            <option value="{{ val }}">{{ label }}</option>
           {% endfor %}
         </select>
       </div>
+      <div class="form-group">
+        <label>Interval Multiplier</label>
+        <input type="number" name="interval_count" value="1" min="1" required>
+      </div>
+      <div class="form-group">
+        <label>Min License Qty</label>
+        <input type="number" name="minimum_quantity" value="1" min="1" required>
+      </div>
     </div>
-    <div style="display: flex; gap: 18px; margin-bottom: 16px;">
-      <label style="font-size:13px; display:flex; align-items:center; gap:6px;">
-        <input type="checkbox" name="allow_pause" checked> Allow Pause
-      </label>
-      <label style="font-size:13px; display:flex; align-items:center; gap:6px;">
-        <input type="checkbox" name="allow_renew" checked> Allow Renew
-      </label>
-      <label style="font-size:13px; display:flex; align-items:center; gap:6px;">
-        <input type="checkbox" name="allow_early_close" checked> Allow Early Close
-      </label>
+
+    <div class="form-group">
+      <label>Tax Rule</label>
+      <select name="tax_id">
+        <option value="">No Tax (Exempt)</option>
+        {% for tax in taxes %}
+          <option value="{{ tax.id }}">{{ tax.name }} ({{ tax.rate }}%)</option>
+        {% endfor %}
+      </select>
     </div>
-    <button type="submit" class="button button-primary">Save Plan</button>
+
+    <div class="form-group">
+      <label style="margin-bottom:8px;">Lifecycle Permissions & Policies</label>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; padding:12px 14px; background:var(--surface-subtle); border:1px solid var(--border-color); border-radius:8px;">
+        <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;">
+          <input type="checkbox" name="allow_pause" value="true" checked> Allow Customer to Pause
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;">
+          <input type="checkbox" name="allow_renew" value="true" checked> Allow Renewal
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;">
+          <input type="checkbox" name="allow_early_close" value="true" checked> Allow Early Termination
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" class="button button-primary">Save & Publish Plan</button>
   </form>
 </section>
 {% endblock %}

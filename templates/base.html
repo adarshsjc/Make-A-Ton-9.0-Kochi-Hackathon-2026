@@ -2,85 +2,242 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Brightloop{% endblock %} · Subscription Management</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}BrightLoop{% endblock %} · Subscription Management</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="{% url 'dashboard-home' %}"><span class="brand-mark">B</span><span>brightloop</span></a>
+  <div class="app-container">
     {% if request.user.is_authenticated %}
-      <nav class="topnav">
-        <a href="{% url 'dashboard-home' %}">Overview</a>
-        {% if request.user.role != "CUSTOMER" or request.user.is_superuser %}
-          <a href="{% url 'finance-dashboard' %}">Finance</a>
-          <a href="{% url 'catalog-product-list' %}">Catalog</a>
-          <a href="{% url 'subscription-list' %}">Subscriptions</a>
-          <a href="{% url 'billing-invoice-list' %}">Invoices</a>
-        {% else %}
-          <a href="{% url 'subscription-list' %}">My Subscriptions</a>
-          <a href="{% url 'billing-invoice-list' %}">My Invoices</a>
-        {% endif %}
-        {% if request.user.is_superuser %}<a href="/admin/">Admin console</a>{% endif %}
-        <a href="{% url 'api-root' %}">API</a>
-      </nav>
-      <div class="user-menu">
-        <span>{{ request.user.full_name|default:request.user.email }} (<strong>{{ request.user.role }}</strong>)</span>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="button button-quiet" type="submit">Sign out</button></form>
-      </div>
-    {% endif %}
-  </header>
+      <!-- Professional Dark Navy Sidebar -->
+      <aside class="sidebar" id="appSidebar">
+        <div class="sidebar-brand">
+          <a href="{% url 'dashboard-home' %}" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
+            <div class="brand-logo">B</div>
+            <div class="brand-text">
+              BrightLoop
+              <span class="brand-badge">SaaS</span>
+            </div>
+          </a>
+        </div>
 
-  <div class="app-layout">
-    {% if request.user.is_authenticated %}
-      <aside class="sidebar">
-        {% if request.user.role == "CUSTOMER" %}
-          <!-- Client / Customer Navigation -->
-          <div class="sidebar-group">
-            <div class="sidebar-title">Client Portal</div>
-            <a href="{% url 'dashboard-home' %}" class="sidebar-link {% if request.path == '/' %}active{% endif %}">◫ Overview</a>
-            <a href="{% url 'subscription-list' %}" class="sidebar-link {% if '/subscriptions/' in request.path %}active{% endif %}">◷ My Subscriptions</a>
-            <a href="{% url 'billing-invoice-list' %}" class="sidebar-link {% if '/billing/' in request.path %}active{% endif %}">▤ My Invoices</a>
-          </div>
-        {% else %}
-          <!-- Admin & Worker (Staff) Navigation -->
-          <div class="sidebar-group">
-            <div class="sidebar-title">Dashboard</div>
-            <a href="{% url 'dashboard-home' %}" class="sidebar-link {% if request.path == '/' %}active{% endif %}">◫ Overview</a>
-            <a href="{% url 'finance-dashboard' %}" class="sidebar-link {% if '/finance/' in request.path %}active{% endif %}">📈 Finance Summary</a>
-          </div>
+        <div class="sidebar-scroll">
+          {% if request.user.role == "CUSTOMER" %}
+            <!-- Customer Portal Navigation -->
+            <div class="sidebar-group">
+              <div class="sidebar-header">Client Portal</div>
+              <a href="{% url 'dashboard-home' %}" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </span>
+                Overview
+              </a>
+              <a href="{% url 'subscription-list' %}" class="nav-item {% if '/subscriptions/' in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </span>
+                My Subscriptions
+              </a>
+              <a href="{% url 'dashboard-home' %}#invoices-section" class="nav-item">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </span>
+                My Invoices
+              </a>
+            </div>
+          {% else %}
+            <!-- Admin / Staff / Worker Navigation -->
+            <div class="sidebar-group">
+              <div class="sidebar-header">Core Business</div>
+              <a href="{% url 'dashboard-home' %}" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </span>
+                Overview
+              </a>
+              <a href="{% url 'finance-dashboard' %}" class="nav-item {% if '/finance/' in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </span>
+                Finance Summary
+              </a>
+            </div>
 
-          <div class="sidebar-group">
-            <div class="sidebar-title">Catalog</div>
-            <a href="{% url 'catalog-product-list' %}" class="sidebar-link {% if '/catalog/products/' in request.path %}active{% endif %}">▦ Products & Variants</a>
-            <a href="{% url 'catalog-plan-list' %}" class="sidebar-link {% if '/catalog/plans/' in request.path %}active{% endif %}">↻ Subscription Plans</a>
-          </div>
+            <div class="sidebar-group">
+              <div class="sidebar-header">Catalog</div>
+              <a href="{% url 'catalog-product-list' %}" class="nav-item {% if '/catalog/products/' in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                </span>
+                Products & Variants
+              </a>
+              <a href="{% url 'catalog-plan-list' %}" class="nav-item {% if '/catalog/plans/' in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                </span>
+                Subscription Plans
+              </a>
+            </div>
 
-          <div class="sidebar-group">
-            <div class="sidebar-title">Subscriptions</div>
-            <a href="{% url 'subscription-list' %}" class="sidebar-link {% if request.path == '/subscriptions/' or '/subscriptions/' in request.path and 'quotations/new' not in request.path %}active{% endif %}">◷ Subscriptions & Quotes</a>
-            <a href="{% url 'quotation-create' %}" class="sidebar-link {% if '/subscriptions/quotations/new/' in request.path %}active{% endif %}">✚ New Quotation</a>
-          </div>
+            <div class="sidebar-group">
+              <div class="sidebar-header">Subscriptions</div>
+              <a href="{% url 'subscription-list' %}" class="nav-item {% if request.path == '/subscriptions/' or '/subscriptions/' in request.path and 'quotations/new' not in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </span>
+                Subscriptions & Quotes
+              </a>
+              <a href="{% url 'quotation-create' %}" class="nav-item {% if '/subscriptions/quotations/new/' in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </span>
+                New Quotation
+              </a>
+            </div>
 
-          <div class="sidebar-group">
-            <div class="sidebar-title">Billing & Invoices</div>
-            <a href="{% url 'billing-invoice-list' %}" class="sidebar-link {% if '/billing/invoices/' in request.path %}active{% endif %}">▤ Invoices & Payments</a>
-            <a href="{% url 'billing-discount-list' %}" class="sidebar-link {% if '/billing/discounts/' in request.path %}active{% endif %}">🏷 Discount Rules</a>
-            <form method="post" action="{% url 'billing-run' %}" style="margin-top: 4px;">
-              {% csrf_token %}
-              <button type="submit" class="button button-secondary" style="width: 100%; font-size: 11px; padding: 6px 10px;">⚡ Run Due Billing</button>
-            </form>
+            <div class="sidebar-group">
+              <div class="sidebar-header">Billing & Invoices</div>
+              <a href="{% url 'billing-invoice-list' %}" class="nav-item {% if '/billing/invoices/' in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </span>
+                Invoices & Payments
+              </a>
+              <a href="{% url 'billing-discount-list' %}" class="nav-item {% if '/billing/discounts/' in request.path %}active{% endif %}">
+                <span class="nav-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                </span>
+                Discount Rules
+              </a>
+              <form method="post" action="{% url 'billing-run' %}" style="margin-top: 8px;">
+                {% csrf_token %}
+                <button type="submit" class="button button-secondary" style="width:100%; font-size:11px; padding:7px 10px; background:var(--navy-surface); color:var(--teal-accent); border-color:var(--navy-border);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  Run Due Billing
+                </button>
+              </form>
+            </div>
+
+            {% if request.user.is_superuser %}
+              <div class="sidebar-group">
+                <div class="sidebar-header">System</div>
+                <a href="/admin/" class="nav-item" target="_blank">
+                  <span class="nav-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  </span>
+                  Admin Console ↗
+                </a>
+                <a href="{% url 'api-root' %}" class="nav-item" target="_blank">
+                  <span class="nav-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                  </span>
+                  REST API ↗
+                </a>
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <!-- Sidebar Profile Footer -->
+        <div class="sidebar-footer">
+          <div class="user-avatar">
+            {{ request.user.full_name|default:request.user.email|slice:":1"|upper }}
           </div>
-        {% endif %}
+          <div class="user-details">
+            <div class="user-name">{{ request.user.full_name|default:request.user.email }}</div>
+            <div class="user-role-badge">{{ request.user.role }}</div>
+          </div>
+          <form method="post" action="{% url 'logout' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="button-quiet" title="Sign out" style="padding:6px; color:var(--navy-text-muted);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </button>
+          </form>
+        </div>
       </aside>
     {% endif %}
 
-    <main class="page-shell" style="flex: 1;">
-      {% if messages %}<div class="messages">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
-      {% block content %}{% endblock %}
-    </main>
+    <!-- Main Content Area -->
+    <div class="main-wrapper" style="{% if not request.user.is_authenticated %}margin-left:0;{% endif %}">
+      {% if request.user.is_authenticated %}
+        <!-- Top Navigation Header -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Toggle Navigation">
+              ☰
+            </button>
+            <div class="breadcrumb-nav">
+              <span>BrightLoop</span>
+              <span class="breadcrumb-separator">/</span>
+              <span class="breadcrumb-active">{% block breadcrumb %}{{ request.user.role|title }} Portal{% endblock %}</span>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <div class="search-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" placeholder="Quick search..." aria-label="Search">
+              <span class="search-kbd">⌘K</span>
+            </div>
+
+            <span class="badge {% if request.user.role == 'ADMIN' %}status-info{% elif request.user.role == 'STAFF' %}status-active{% else %}status-warning{% endif %}">
+              {{ request.user.role }}
+            </span>
+
+            <form method="post" action="{% url 'logout' %}" style="margin:0;">
+              {% csrf_token %}
+              <button class="button button-quiet button-sm" type="submit">Sign out</button>
+            </form>
+          </div>
+        </header>
+      {% endif %}
+
+      <main class="page-content">
+        {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+              <div class="message {{ message.tags }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
   </div>
 
-  <footer class="footer">Brightloop · Subscription operations workspace</footer>
+  <script src="{% static 'js/charts.js' %}"></script>
+  <script>
+    // Responsive sidebar toggle
+    const toggleBtn = document.getElementById('mobileNavToggle');
+    const sidebar = document.getElementById('appSidebar');
+    if (toggleBtn && sidebar) {
+      toggleBtn.addEventListener('click', function() {
+        sidebar.classList.toggle('open');
+      });
+      document.addEventListener('click', function(e) {
+        if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target) && sidebar.classList.contains('open')) {
+          sidebar.classList.remove('open');
+        }
+      });
+    }
+
+    // Touchy page transition feedback
+    document.querySelectorAll('a[href]:not([target="_blank"]):not([href^="#"]):not([href^="javascript"])').forEach(link => {
+      link.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        if (href && (href.startsWith('/') || href.startsWith('.'))) {
+          const content = document.querySelector('.page-content');
+          if (content) {
+            content.style.opacity = '0.6';
+            content.style.transform = 'translateY(4px)';
+            content.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>

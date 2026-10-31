@@ -1,89 +1,154 @@
 {% extends "base.html" %}
 {% block title %}Finance Dashboard{% endblock %}
+{% block breadcrumb %}Finance Dashboard{% endblock %}
+
 {% block content %}
 <section class="page-heading">
-  <div>
-    <p class="eyebrow">FINANCE</p>
-    <h1>Finance dashboard</h1>
-    <p class="muted">Revenue, collections, outstanding and overdue — filtered by date range and status.</p>
+  <div class="page-title-group">
+    <div class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      FINANCIAL OPERATIONS
+    </div>
+    <h1>Finance Dashboard</h1>
+    <p class="muted">Live reconciliation of collected revenue, accounts receivable, overdue balances, and cash flows.</p>
   </div>
   <div class="heading-actions">
     {% if request.user.role != "CUSTOMER" or request.user.is_superuser %}
-      <form method="post" action="{% url 'billing-run' %}">{% csrf_token %}
+      <form method="post" action="{% url 'billing-run' %}">
+        {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <button class="button button-primary" type="submit">Run billing</button>
+        <button class="button button-teal" type="submit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Run Billing
+        </button>
       </form>
     {% endif %}
-    <a class="button button-secondary" href="{% url 'billing-invoice-list' %}">All invoices</a>
-    <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Discounts</a>
+    <a class="button button-secondary" href="{% url 'billing-invoice-list' %}">All Invoices</a>
+    <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Discount Rules</a>
   </div>
 </section>
 
-{# Filter bar #}
-<form method="get" class="panel" style="padding:14px 18px;margin-bottom:18px">
-  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-    <div>
-      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Search</label>
-      <input name="q" value="{{ search }}" placeholder="Invoice #, customer…" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit;width:200px">
+<!-- Financial Metrics Grid -->
+<section class="metric-grid">
+  <article class="metric-card">
+    <div class="metric-card-top">
+      <span class="metric-title">Active Subscriptions</span>
+      <div class="metric-icon-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
     </div>
-    <div>
-      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Status</label>
-      <select name="status" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
-        <option value="">All</option>
-        {% for val, label in status_choices %}
-          <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
+    <div class="metric-card-value">{{ active_subscriptions|default:0 }}</div>
+    <div class="metric-footer">
+      <span class="badge status-active">Generating ARR</span>
     </div>
-    <div>
-      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Issue from</label>
-      <input type="date" name="start_date" value="{{ start_date_str }}" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+  </article>
+
+  <article class="metric-card">
+    <div class="metric-card-top">
+      <span class="metric-title">Revenue collected</span>
+      <div class="metric-icon-wrap" style="background:var(--teal-soft); color:var(--teal-accent);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      </div>
     </div>
-    <div>
-      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Issue to</label>
-      <input type="date" name="end_date" value="{{ end_date_str }}" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+    <div class="metric-card-value">₹{{ revenue_collected|default:"0.00" }}</div>
+    <div class="metric-footer">
+      <span class="badge status-paid">Reconciled Cash</span>
     </div>
-    <div>
-      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Overdue only</label>
-      <select name="overdue" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
-        <option value="">All</option>
-        <option value="1" {% if overdue_filter == "1" %}selected{% endif %}>Overdue</option>
-      </select>
+  </article>
+
+  <article class="metric-card">
+    <div class="metric-card-top">
+      <span class="metric-title">Outstanding Receivables</span>
+      <div class="metric-icon-wrap" style="background:var(--blue-soft); color:var(--blue-primary);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+      </div>
     </div>
+    <div class="metric-card-value">₹{{ outstanding_amount|default:"0.00" }}</div>
+    <div class="metric-footer">
+      <span class="badge status-draft">Uncollected</span>
+    </div>
+  </article>
+
+  <article class="metric-card {% if overdue_amount > 0 %}metric-warning{% endif %}">
+    <div class="metric-card-top">
+      <span class="metric-title">Overdue Receivables</span>
+      <div class="metric-icon-wrap" style="background:var(--warning-soft); color:var(--warning);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+    </div>
+    <div class="metric-card-value">₹{{ overdue_amount|default:"0.00" }}</div>
+    <div class="metric-footer">
+      <span class="badge status-warning">{{ overdue_invoice_count|default:0 }} Invoices Overdue</span>
+    </div>
+  </article>
+</section>
+
+<!-- Filter Toolbar -->
+<form method="get" class="filter-bar">
+  <div style="flex:1; min-width:200px;">
+    <label>Search Query</label>
+    <input name="q" value="{{ search }}" placeholder="Invoice #, customer…">
+  </div>
+  <div>
+    <label>Status</label>
+    <select name="status">
+      <option value="">All Statuses</option>
+      {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Issue Date From</label>
+    <input type="date" name="start_date" value="{{ start_date_str }}">
+  </div>
+  <div>
+    <label>Issue Date To</label>
+    <input type="date" name="end_date" value="{{ end_date_str }}">
+  </div>
+  <div>
+    <label>Overdue</label>
+    <select name="overdue">
+      <option value="">All</option>
+      <option value="1" {% if overdue_filter == "1" %}selected{% endif %}>Overdue</option>
+    </select>
+  </div>
+  <div style="display:flex; gap:8px;">
     <button class="button button-primary" type="submit">Filter</button>
-    <a class="button button-secondary" href="{% url 'finance-dashboard' %}">Clear</a>
+    <a class="button button-secondary" href="{% url 'finance-dashboard' %}">Reset</a>
   </div>
 </form>
 
-{# KPI metrics #}
-<section class="metric-grid" style="margin-bottom:18px">
-  <article class="metric-card">
-    <span>Active subscriptions</span>
-    <strong>{{ active_subscriptions|default:0 }}</strong>
-    <small>Currently active</small>
-  </article>
-  <article class="metric-card">
-    <span>Revenue collected</span>
-    <strong>₹{{ revenue_collected|default:"0.00" }}</strong>
-    <small>Recorded payments</small>
-  </article>
-  <article class="metric-card">
-    <span>Outstanding</span>
-    <strong>₹{{ outstanding_amount|default:"0.00" }}</strong>
-    <small>Unpaid confirmed invoices</small>
-  </article>
-  <article class="metric-card metric-warning">
-    <span>Overdue</span>
-    <strong>₹{{ overdue_amount|default:"0.00" }}</strong>
-    <small>{{ overdue_invoice_count|default:0 }} invoice{{ overdue_invoice_count|pluralize }} past due</small>
-  </article>
-</section>
+<!-- Financial Analytics Visualizer -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-bottom: 24px;">
+  <section class="card" style="margin: 0;">
+    <div class="panel-heading">
+      <div>
+        <h2>Portfolio Reconciliation</h2>
+        <span class="muted small">Settled revenue vs total accounts receivable</span>
+      </div>
+    </div>
+    <div id="financeDonut" style="min-height: 180px; display:flex; align-items:center; justify-content:center;"></div>
+  </section>
 
-{# Invoice table #}
+  <section class="card" style="margin: 0;">
+    <div class="panel-heading">
+      <div>
+        <h2>Invoice Value Spectrum</h2>
+        <span class="muted small">Distribution across active ledger items</span>
+      </div>
+    </div>
+    <div id="financePillBars" style="min-height: 180px; display:flex; align-items:center; justify-content:center;"></div>
+  </section>
+</div>
+
+<!-- Filtered Invoices Table -->
 <section class="panel">
   <div class="panel-heading">
-    <h2>Invoices</h2>
-    <span class="muted small">{{ page_obj.paginator.count }} result{{ page_obj.paginator.count|pluralize }}</span>
+    <div>
+      <h2>Financial Ledger</h2>
+      <span class="muted small">{{ page_obj.paginator.count|default:page_obj|length }} invoice line(s)</span>
+    </div>
   </div>
   <div class="table-wrap">
     <table>
@@ -91,28 +156,52 @@
         <tr>
           <th>Invoice #</th>
           <th>Customer</th>
-          <th>Issue date</th>
-          <th>Due date</th>
-          <th>Total</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th>Total Amount</th>
           <th>Paid</th>
-          <th>Balance</th>
+          <th>Balance Due</th>
           <th>Status</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
         {% for invoice in page_obj %}
         <tr>
-          <td><a href="{% url 'billing-invoice-detail' invoice.pk %}" class="text-link">{{ invoice.number }}</a></td>
-          <td>{{ invoice.customer.full_name|default:invoice.customer.email }}</td>
+          <td><strong class="mono">{{ invoice.number }}</strong></td>
+          <td>
+            <strong>{{ invoice.customer.full_name|default:invoice.customer.email }}</strong>
+            <div class="muted small">{{ invoice.customer.email }}</div>
+          </td>
           <td>{{ invoice.issue_date }}</td>
-          <td style="{% if invoice.is_overdue %}color:var(--warning);font-weight:700{% endif %}">{{ invoice.due_date }}</td>
-          <td>₹{{ invoice.total }}</td>
-          <td>₹{{ invoice.amount_paid }}</td>
-          <td>₹{{ invoice.balance_due }}</td>
-          <td><span class="status">{{ invoice.get_status_display }}</span></td>
+          <td>
+            <span {% if invoice.is_overdue and invoice.status != 'PAID' %}style="color:var(--danger); font-weight:700;"{% endif %}>
+              {{ invoice.due_date }}
+            </span>
+          </td>
+          <td><strong>₹{{ invoice.total }}</strong></td>
+          <td style="color:var(--teal-accent);">₹{{ invoice.amount_paid }}</td>
+          <td>
+            <strong {% if invoice.balance_due > 0 and invoice.is_overdue %}style="color:var(--danger);"{% endif %}>
+              ₹{{ invoice.balance_due }}
+            </strong>
+          </td>
+          <td>
+            <span class="badge {% if invoice.status == 'PAID' %}status-paid{% elif invoice.status == 'CONFIRMED' %}status-warning{% elif invoice.status == 'CANCELLED' %}status-danger{% else %}status-draft{% endif %}">
+              {{ invoice.get_status_display }}
+            </span>
+          </td>
+          <td>
+            <a href="{% url 'billing-invoice-detail' invoice.pk %}" class="button button-secondary button-sm">Details →</a>
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="empty">No invoices match your filters.</td></tr>
+        <tr>
+          <td colspan="9" class="empty-state">
+            <div class="empty-state-icon">₹</div>
+            <div class="empty-state-text">No invoices matching the selected financial filter criteria.</div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -122,11 +211,34 @@
     {% if page_obj.has_previous %}
       <a class="button button-secondary" href="?{% if search %}q={{ search }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if start_date_str %}start_date={{ start_date_str }}&{% endif %}{% if end_date_str %}end_date={{ end_date_str }}&{% endif %}{% if overdue_filter %}overdue={{ overdue_filter }}&{% endif %}page={{ page_obj.previous_page_number }}">← Prev</a>
     {% endif %}
-    <span style="font-size:12px;color:var(--muted);padding:10px">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    <span style="font-size:12px;color:var(--text-secondary);padding:10px">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
       <a class="button button-secondary" href="?{% if search %}q={{ search }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if start_date_str %}start_date={{ start_date_str }}&{% endif %}{% if end_date_str %}end_date={{ end_date_str }}&{% endif %}{% if overdue_filter %}overdue={{ overdue_filter }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
     {% endif %}
   </div>
   {% endif %}
 </section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (window.BrightLoopCharts) {
+      BrightLoopCharts.renderDonut('financeDonut', [
+        { label: 'Settled', value: Number('{{ revenue_collected|default:0 }}') || 0, color: '#0D9488' },
+        { label: 'Outstanding', value: Number('{{ outstanding_amount|default:0 }}') || 0, color: '#2563EB' },
+        { label: 'Overdue', value: Number('{{ overdue_amount|default:0 }}') || 0, color: '#EF4444' }
+      ]);
+
+      const seriesData = [
+        {% for inv in page_obj|slice:":8" %}
+          {
+            label: '{{ inv.number|slice:"-4:" }}',
+            value: Number('{{ inv.total|default:0 }}'),
+            color: '{% if inv.status == "PAID" %}#0D9488{% elif inv.status == "CONFIRMED" %}#2563EB{% else %}#0E1015{% endif %}'
+          }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ];
+      BrightLoopCharts.renderPillBars('financePillBars', seriesData, { height: 140 });
+    }
+  });
+</script>
 {% endblock %}

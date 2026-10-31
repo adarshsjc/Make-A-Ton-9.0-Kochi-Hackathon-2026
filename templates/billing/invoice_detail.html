@@ -1,188 +1,245 @@
 {% extends "base.html" %}
 {% block title %}Invoice {{ invoice.number }}{% endblock %}
+{% block breadcrumb %}{{ invoice.number }}{% endblock %}
+
 {% block content %}
 <section class="page-heading">
-  <div>
-    <p class="eyebrow">INVOICE DETAIL</p>
-    <h1>{{ invoice.number }}</h1>
-    <p class="muted">{{ invoice.subscription.number }} · {{ invoice.customer.full_name|default:invoice.customer.email }}</p>
+  <div class="page-title-group">
+    <div class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      INVOICE RECORD
+    </div>
+    <h1>
+      {{ invoice.number }}
+      <span class="badge {% if invoice.status == 'PAID' %}status-paid{% elif invoice.status == 'CONFIRMED' %}status-warning{% elif invoice.status == 'CANCELLED' %}status-danger{% else %}status-draft{% endif %}" style="vertical-align:middle; font-size:12px; margin-left:8px;">
+        {{ invoice.get_status_display }}
+      </span>
+      {% if invoice.is_overdue and invoice.status != 'PAID' and invoice.status != 'CANCELLED' %}
+        <span class="badge status-danger" style="vertical-align:middle; font-size:12px;">OVERDUE</span>
+      {% endif %}
+    </h1>
+    <p class="muted">
+      Subscription: <a href="{% url 'subscription-detail' invoice.subscription_id %}" class="mono">{{ invoice.subscription.number }}</a>
+      · Client: <strong>{{ invoice.customer.full_name|default:invoice.customer.email }}</strong> ({{ invoice.customer.email }})
+    </p>
   </div>
   <div class="heading-actions">
+    <a class="button button-secondary" href="{% url 'billing-invoice-print' invoice.pk %}" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      Print Invoice
+    </a>
     {% if is_staff_or_admin %}
-      <a class="button button-secondary" href="{% url 'billing-invoice-print' invoice.pk %}" target="_blank">🖨 Print</a>
       {% if invoice.status == "DRAFT" %}
-        <form method="post" action="{% url 'billing-invoice-confirm' invoice.pk %}">{% csrf_token %}
-          <button class="button button-primary" type="submit">Confirm invoice</button>
+        <form method="post" action="{% url 'billing-invoice-confirm' invoice.pk %}">
+          {% csrf_token %}
+          <button class="button button-primary" type="submit">Confirm Invoice</button>
         </form>
-        <form method="post" action="{% url 'billing-invoice-cancel' invoice.pk %}">{% csrf_token %}
-          <button class="button button-secondary" type="submit" onclick="return confirm('Cancel this invoice?')">Cancel</button>
+        <form method="post" action="{% url 'billing-invoice-cancel' invoice.pk %}">
+          {% csrf_token %}
+          <button class="button button-danger" type="submit" onclick="return confirm('Cancel this invoice?')">Cancel</button>
         </form>
       {% elif invoice.status == "CONFIRMED" %}
-        <form method="post" action="{% url 'billing-invoice-send' invoice.pk %}">{% csrf_token %}
-          <button class="button button-secondary" type="submit">Send to customer</button>
+        <form method="post" action="{% url 'billing-invoice-send' invoice.pk %}">
+          {% csrf_token %}
+          <button class="button button-teal" type="submit">Send to Customer</button>
         </form>
-        <form method="post" action="{% url 'billing-invoice-cancel' invoice.pk %}">{% csrf_token %}
-          <button class="button button-secondary" type="submit" onclick="return confirm('Cancel this invoice?')">Cancel</button>
+        <form method="post" action="{% url 'billing-invoice-cancel' invoice.pk %}">
+          {% csrf_token %}
+          <button class="button button-danger" type="submit" onclick="return confirm('Cancel this invoice?')">Cancel</button>
         </form>
       {% endif %}
     {% endif %}
-    <a class="button button-secondary" href="{% url 'billing-invoice-list' %}">← Back to invoices</a>
+    <a class="button button-secondary" href="{% url 'billing-invoice-list' %}">← Invoices List</a>
   </div>
 </section>
 
-{# Meta section #}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
-  <section class="panel">
-    <h2 style="margin-bottom:12px">Invoice info</h2>
+<!-- Meta Section Grid -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 22px;">
+  <!-- Invoice Info -->
+  <section class="card" style="margin: 0;">
+    <div class="panel-heading">
+      <h2>Invoice Specifications</h2>
+    </div>
     <table>
       <tbody>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0;width:140px">Invoice number</td><td><strong>{{ invoice.number }}</strong></td></tr>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Status</td><td><span class="status">{{ invoice.get_status_display }}</span>{% if invoice.is_overdue %} <span style="color:var(--warning);font-size:11px;font-weight:700">OVERDUE</span>{% endif %}</td></tr>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Issue date</td><td>{{ invoice.issue_date }}</td></tr>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Due date</td><td style="{% if invoice.is_overdue %}color:var(--warning);font-weight:700{% endif %}">{{ invoice.due_date }}</td></tr>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Period</td><td>{{ invoice.period_start }} to {{ invoice.period_end }}</td></tr>
-        {% if invoice.sent_at %}<tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Sent at</td><td>{{ invoice.sent_at }}</td></tr>{% endif %}
+        <tr>
+          <td class="muted" style="width:130px;">Issue Date</td>
+          <td><strong>{{ invoice.issue_date }}</strong></td>
+        </tr>
+        <tr>
+          <td class="muted">Due Date</td>
+          <td>
+            <strong {% if invoice.is_overdue and invoice.status != 'PAID' %}style="color:var(--danger);"{% endif %}>
+              {{ invoice.due_date }}
+            </strong>
+          </td>
+        </tr>
+        <tr>
+          <td class="muted">Billing Period</td>
+          <td>{{ invoice.period_start }} to {{ invoice.period_end }}</td>
+        </tr>
+        {% if invoice.sent_at %}
+        <tr>
+          <td class="muted">Sent Timestamp</td>
+          <td>{{ invoice.sent_at }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="muted">Created At</td>
+          <td>{{ invoice.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
       </tbody>
     </table>
   </section>
-  <section class="panel">
-    <h2 style="margin-bottom:12px">Payment summary</h2>
+
+  <!-- Payment Summary -->
+  <section class="card" style="margin: 0;">
+    <div class="panel-heading">
+      <h2>Financial Summary</h2>
+    </div>
     <table>
       <tbody>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0;width:140px">Subtotal</td><td>₹{{ invoice.subtotal }}</td></tr>
-        {% if invoice.discount_amount %}<tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Discount</td><td>−₹{{ invoice.discount_amount }}</td></tr>{% endif %}
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Tax</td><td>₹{{ invoice.tax_amount }}</td></tr>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0"><strong>Total</strong></td><td><strong>₹{{ invoice.total }}</strong></td></tr>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Paid</td><td style="color:#087f70">₹{{ invoice.amount_paid }}</td></tr>
-        <tr><td style="color:var(--muted);font-size:12px;padding:7px 0">Balance due</td><td><strong {% if invoice.balance_due %}style="color:var(--warning)"{% endif %}>₹{{ invoice.balance_due }}</strong></td></tr>
+        <tr>
+          <td class="muted" style="width:130px;">Subtotal</td>
+          <td>₹{{ invoice.subtotal }}</td>
+        </tr>
+        {% if invoice.discount_amount %}
+        <tr>
+          <td class="muted">Discount Applied</td>
+          <td style="color:var(--teal-accent); font-weight:600;">−₹{{ invoice.discount_amount }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="muted">Taxes</td>
+          <td>₹{{ invoice.tax_amount }}</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border-color);">
+          <td style="font-weight:700;">Grand Total</td>
+          <td><strong style="font-size:16px; color:var(--blue-primary);">₹{{ invoice.total }}</strong></td>
+        </tr>
+        <tr>
+          <td class="muted">Amount Settled</td>
+          <td style="color:var(--teal-accent); font-weight:700;">₹{{ invoice.amount_paid }}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;">Balance Due</td>
+          <td>
+            <strong style="font-size:16px; {% if invoice.balance_due > 0 and invoice.is_overdue %}color:var(--danger);{% endif %}">
+              ₹{{ invoice.balance_due }}
+            </strong>
+          </td>
+        </tr>
       </tbody>
     </table>
   </section>
 </div>
 
-{# Invoice lines #}
-<section class="panel" style="margin-bottom:18px">
-  <div class="panel-heading"><h2>Line items</h2></div>
+<!-- Invoice Line Items Table -->
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Line Items & Services</h2>
+  </div>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th>Description</th>
-          <th>Qty</th>
-          <th>Unit price</th>
-          <th>Discount</th>
-          <th>Net</th>
-          <th>Tax rate</th>
-          <th>Tax</th>
-          <th>Line total</th>
+          <th>Quantity</th>
+          <th>Unit Price</th>
+          <th>Tax Rate</th>
+          <th>Tax Amount</th>
+          <th>Line Total</th>
         </tr>
       </thead>
       <tbody>
         {% for line in invoice.lines.all %}
         <tr>
-          <td>
-            <strong>{{ line.product_name }}</strong>
-            {% if line.variant_description %}<br><small class="muted">{{ line.variant_description }}</small>{% endif %}
-          </td>
+          <td><strong>{{ line.description }}</strong></td>
           <td>{{ line.quantity }}</td>
           <td>₹{{ line.unit_price }}</td>
-          <td>{% if line.discount_amount %}−₹{{ line.discount_amount }}{% else %}—{% endif %}</td>
-          <td>₹{{ line.line_subtotal }}</td>
           <td>{{ line.tax_rate }}%</td>
           <td>₹{{ line.tax_amount }}</td>
-          <td><strong>₹{{ line.line_total }}</strong></td>
+          <td><strong>₹{{ line.total }}</strong></td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="empty">No line items.</td></tr>
+        <tr>
+          <td colspan="6" class="empty-state">No line items in this invoice.</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </section>
 
-{# Discount redemptions #}
-{% if invoice.discount_redemptions.all %}
-<section class="panel" style="margin-bottom:18px">
-  <div class="panel-heading"><h2>Applied discounts</h2></div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Rule</th><th>Discount applied</th><th>Redeemed at</th></tr></thead>
-      <tbody>
-        {% for dr in invoice.discount_redemptions.all %}
-        <tr>
-          <td>{{ dr.discount_rule.name }}</td>
-          <td>−₹{{ dr.discount_amount }}</td>
-          <td>{{ dr.redeemed_at }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-{% endif %}
+<!-- Payments & Settlement History -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start;">
+  <!-- Recorded Payments Ledger -->
+  <section class="panel" style="margin: 0;">
+    <div class="panel-heading">
+      <h2>Payment Transactions</h2>
+      <span class="muted small">{{ invoice.payments.count }} transaction(s)</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in invoice.payments.all %}
+          <tr>
+            <td>{{ payment.payment_date }}</td>
+            <td><strong style="color:var(--teal-accent);">₹{{ payment.amount }}</strong></td>
+            <td><span class="badge status-info">{{ payment.get_payment_method_display }}</span></td>
+            <td><span class="mono small">{{ payment.reference|default:"—" }}</span></td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="empty-state">
+              <div class="empty-state-text">No payment records yet. Balance remaining: ₹{{ invoice.balance_due }}.</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-{# Payments #}
-<section class="panel" style="margin-bottom:18px">
-  <div class="panel-heading">
-    <h2>Payment history</h2>
-    {% if is_staff_or_admin and invoice.status == "CONFIRMED" and invoice.balance_due > 0 %}
-      <button class="button button-primary" onclick="document.getElementById('payment-form-section').style.display='block';this.style.display='none'">+ Record payment</button>
-    {% endif %}
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Reference</th><th>Recorded by</th><th>Note</th></tr></thead>
-      <tbody>
-        {% for payment in invoice.payments.all %}
-        <tr>
-          <td>{{ payment.payment_date }}</td>
-          <td>{{ payment.get_method_display }}</td>
-          <td>₹{{ payment.amount }}</td>
-          <td>{{ payment.reference|default:"—" }}</td>
-          <td>{{ payment.recorded_by.email }}</td>
-          <td>{{ payment.note|default:"—" }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6" class="empty">No payments recorded yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  {# Inline payment form #}
-  {% if is_staff_or_admin and invoice.status == "CONFIRMED" and invoice.balance_due > 0 %}
-  <div id="payment-form-section" style="display:none;margin-top:18px;border-top:1px solid var(--line);padding-top:18px">
-    <h3 style="font-size:14px;margin:0 0 14px">Record a payment <small class="muted">(balance: ₹{{ invoice.balance_due }})</small></h3>
-    <form method="post" action="{% url 'billing-invoice-payment' invoice.pk %}">
-      {% csrf_token %}
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:start">
-        <div>
-          <label style="display:block;font-size:11px;font-weight:700;margin-bottom:5px">Method *</label>
-          {{ payment_form.method }}
+  <!-- Record Payment Form (Staff / Admin Only) -->
+  {% if is_staff_or_admin and invoice.balance_due > 0 and invoice.status == 'CONFIRMED' %}
+    <section class="card" style="margin: 0;">
+      <div class="panel-heading">
+        <h2>Record Payment Transaction</h2>
+      </div>
+      <form method="post" action="{% url 'billing-invoice-payment' invoice.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label>Payment Amount (₹)</label>
+          <input type="number" step="0.01" name="amount" value="{{ invoice.balance_due }}" max="{{ invoice.balance_due }}" required>
         </div>
-        <div>
-          <label style="display:block;font-size:11px;font-weight:700;margin-bottom:5px">Amount (₹) *</label>
-          {{ payment_form.amount }}
+        <div class="form-group">
+          <label>Payment Method</label>
+          {{ payment_form.payment_method }}
         </div>
-        <div>
-          <label style="display:block;font-size:11px;font-weight:700;margin-bottom:5px">Payment date</label>
-          {{ payment_form.payment_date }}
-        </div>
-        <div>
-          <label style="display:block;font-size:11px;font-weight:700;margin-bottom:5px">Reference</label>
+        <div class="form-group">
+          <label>Transaction Reference / UTR</label>
           {{ payment_form.reference }}
         </div>
-        <div style="grid-column:1/-1">
-          <label style="display:block;font-size:11px;font-weight:700;margin-bottom:5px">Note</label>
+        <div class="form-group">
+          <label>Payment Date</label>
+          {{ payment_form.payment_date }}
+        </div>
+        <div class="form-group">
+          <label>Internal Note (Optional)</label>
           {{ payment_form.note }}
         </div>
-        <div>
-          <button class="button button-primary" type="submit">Record payment</button>
-          <button class="button button-secondary" type="button" onclick="document.getElementById('payment-form-section').style.display='none'">Cancel</button>
-        </div>
-      </div>
-    </form>
-  </div>
+        <button type="submit" class="button button-teal" style="width:100%;">Record & Settle Payment</button>
+      </form>
+    </section>
   {% endif %}
-</section>
+</div>
 {% endblock %}
