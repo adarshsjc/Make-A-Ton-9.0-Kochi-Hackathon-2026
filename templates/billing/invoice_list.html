@@ -4,19 +4,19 @@
 <section class="page-heading">
   <div>
     <p class="eyebrow">BILLING</p>
-    <h1>Invoices</h1>
-    <p class="muted">All customer invoices across subscriptions.</p>
+    <h1>{% if is_customer %}My invoices{% else %}Invoices{% endif %}</h1>
+    <p class="muted">{% if is_customer %}Invoices issued for your subscriptions.{% else %}All customer invoices across subscriptions.{% endif %}</p>
   </div>
+  {% if not is_customer %}
   <div class="heading-actions">
-    {% if request.user.role != "CUSTOMER" or request.user.is_superuser %}
-      <form method="post" action="{% url 'billing-run' %}">{% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <button class="button button-primary" type="submit">Run billing</button>
-      </form>
-    {% endif %}
+    <form method="post" action="{% url 'billing-run' %}">{% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="button button-primary" type="submit">Run billing</button>
+    </form>
     <a class="button button-secondary" href="{% url 'finance-dashboard' %}">Finance overview</a>
     <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Discounts</a>
   </div>
+  {% endif %}
 </section>
 
 {# Filter bar #}
@@ -65,7 +65,7 @@
       <thead>
         <tr>
           <th>Invoice #</th>
-          <th>Customer</th>
+          {% if not is_customer %}<th>Customer</th>{% endif %}
           <th>Subscription</th>
           <th>Issue date</th>
           <th>Due date</th>
@@ -79,7 +79,7 @@
         {% for invoice in page_obj %}
         <tr>
           <td><a href="{% url 'billing-invoice-detail' invoice.pk %}" class="text-link">{{ invoice.number }}</a></td>
-          <td>{{ invoice.customer.full_name|default:invoice.customer.email }}</td>
+          {% if not is_customer %}<td>{{ invoice.customer.full_name|default:invoice.customer.email }}</td>{% endif %}
           <td>{{ invoice.subscription.number }}</td>
           <td>{{ invoice.issue_date }}</td>
           <td style="{% if invoice.is_overdue %}color:var(--warning);font-weight:700{% endif %}">{{ invoice.due_date }}</td>
@@ -91,7 +91,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="9" class="empty">No invoices match your filters.</td></tr>
+        <tr><td colspan="{% if is_customer %}8{% else %}9{% endif %}" class="empty">No invoices match your filters.</td></tr>
         {% endfor %}
       </tbody>
     </table>

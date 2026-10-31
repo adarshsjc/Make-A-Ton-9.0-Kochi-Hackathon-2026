@@ -145,12 +145,26 @@ class StaffOrAdminRequiredMixin(LoginRequiredMixin):
 # HTML: Invoice List
 # ---------------------------------------------------------------------------
 
-class InvoiceListView(StaffOrAdminRequiredMixin, TemplateView):
+class InvoiceListView(LoginRequiredMixin, TemplateView):
+    """Show all invoices to internal users and only owned invoices to customers."""
     template_name = "billing/invoice_list.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        # Customers may view their own invoices. Internal users may view all.
+        # Keep any unexpected role out rather than granting broad invoice access.
+        allowed_roles = {User.Role.CUSTOMER, User.Role.STAFF, User.Role.ADMIN}
+        if request.user.is_authenticated and request.user.role not in allowed_roles and not request.user.is_superuser:
+            return HttpResponseForbidden("Access restricted to customers, staff and administrators.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        is_customer = user.role == User.Role.CUSTOMER and not user.is_superuser
         qs = Invoice.objects.select_related("customer", "subscription").prefetch_related("payments")
+        if is_customer:
+            # Mandatory ownership scope is applied before any user-controlled filters.
+            qs = qs.filter(customer=user)
 
         # Filters from query string
         status_filter = self.request.GET.get("status", "")
@@ -198,6 +212,7 @@ class InvoiceListView(StaffOrAdminRequiredMixin, TemplateView):
                 "start_date_str": start_date_str,
                 "end_date_str": end_date_str,
                 "search": search,
+                "is_customer": is_customer,
             }
         )
         return ctx
