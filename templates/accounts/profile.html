@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <p class="eyebrow">ACCOUNT SETTINGS</p>
+  <h1>My profile</h1>
+  <p class="muted">Manage the account details associated with your Brightloop login.</p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% if account_form.non_field_errors %}
+      <div class="form-errors">{{ account_form.non_field_errors }}</div>
+    {% endif %}
+    <h2>Personal details</h2>
+    {% for field in account_form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<div class="field-error">{{ field.errors }}</div>{% endif %}
+    {% endfor %}
+
+    {% if is_customer and profile_form %}
+      <h2 style="margin-top:22px">Company and billing details</h2>
+      {% if profile_form.non_field_errors %}<div class="form-errors">{{ profile_form.non_field_errors }}</div>{% endif %}
+      {% for field in profile_form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="field-error">{{ field.errors }}</div>{% endif %}
+      {% endfor %}
+    {% endif %}
+
+    <button class="button button-primary button-full" type="submit">Save changes</button>
+  </form>
+  <div class="auth-links"><a href="{% url 'dashboard-home' %}">Back to overview</a></div>
+</section>
+{% endblock %}
