@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Subscription {{ subscription.number }}{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">SUBSCRIPTION DETAILS</p>
+    <h1>{{ subscription.number }} <span class="status" style="vertical-align: middle; font-size:13px;">{{ subscription.get_status_display }}</span></h1>
+    <p class="muted">Customer: <strong>{{ subscription.customer.full_name|default:subscription.customer.email }}</strong> | Plan: <strong>{{ subscription.plan.name }}</strong></p>
+  </div>
+  <div class="heading-actions">
+    <a href="{% url 'subscription-list' %}" class="button button-secondary">← Back to List</a>
+  </div>
+</section>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px;">
+  <section class="panel">
+    <div class="panel-heading">
+      <h2>Subscription Snapshot</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; font-size: 13px;">
+      <div>
+        <span class="muted small" style="display:block;">Plan Recurring Fee</span>
+        <strong>₹{{ subscription.plan_price_snapshot }}</strong>
+      </div>
+      <div>
+        <span class="muted small" style="display:block;">Billing Interval</span>
+        <strong>{{ subscription.plan.get_billing_interval_display }}</strong>
+      </div>
+      <div>
+        <span class="muted small" style="display:block;">Payment Terms</span>
+        <strong>{{ subscription.payment_terms_days }} Days</strong>
+      </div>
+      <div>
+        <span class="muted small" style="display:block;">Start Date</span>
+        <strong>{{ subscription.start_date }}</strong>
+      </div>
+      <div>
+        <span class="muted small" style="display:block;">Next Billing Date</span>
+        <strong>{{ subscription.next_billing_date|default:"None / Inactive" }}</strong>
+      </div>
+      <div>
+        <span class="muted small" style="display:block;">Expiry Date</span>
+        <strong>{{ subscription.expiry_date|default:"Ongoing" }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <h2>Lifecycle Actions</h2>
+    </div>
+    <p class="small muted" style="margin-bottom: 12px;">Valid status transitions for <strong>{{ subscription.status }}</strong>:</p>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      {% if subscription.status == "DRAFT" %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="send_quotation"><button type="submit" class="button button-secondary" style="width:100%;">Mark Quotation</button></form>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm"><button type="submit" class="button button-primary" style="width:100%;">Confirm</button></form>
+      {% elif subscription.status == "QUOTATION" %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm"><button type="submit" class="button button-primary" style="width:100%;">Confirm</button></form>
+      {% elif subscription.status == "CONFIRMED" %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="activate"><button type="submit" class="button button-primary" style="width:100%;">Activate</button></form>
+      {% elif subscription.status == "ACTIVE" %}
+        {% if subscription.plan.allow_pause %}
+          <form method="post">{% csrf_token %}<input type="hidden" name="action" value="pause"><button type="submit" class="button button-secondary" style="width:100%;">Pause</button></form>
+        {% endif %}
+        {% if subscription.plan.allow_renew %}
+          <form method="post">{% csrf_token %}<input type="hidden" name="action" value="renew"><button type="submit" class="button button-secondary" style="width:100%;">Renew</button></form>
+        {% endif %}
+        {% if subscription.plan.allow_early_close %}
+          <form method="post">{% csrf_token %}<input type="hidden" name="action" value="close"><button type="submit" class="button button-quiet" style="width:100%; color:var(--warning);">Close Subscription</button></form>
+        {% endif %}
+      {% elif subscription.status == "PAUSED" %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="resume"><button type="submit" class="button button-primary" style="width:100%;">Resume</button></form>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="close"><button type="submit" class="button button-quiet" style="width:100%; color:var(--warning);">Close Subscription</button></form>
+      {% elif subscription.status == "CLOSED" %}
+        {% if subscription.plan.allow_renew %}
+          <form method="post">{% csrf_token %}<input type="hidden" name="action" value="renew"><button type="submit" class="button button-primary" style="width:100%;">Reactivate & Renew</button></form>
+        {% else %}
+          <span class="muted small">This subscription is closed.</span>
+        {% endif %}
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Subscribed Products & Add-on Lines</h2>
+    <span class="muted small">{{ subscription.lines.count }} line item(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item / Snapshot</th>
+          <th>Variant</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Tax Rate</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in subscription.lines.all %}
+        <tr>
+          <td><strong>{{ line.description_snapshot }}</strong></td>
+          <td>{{ line.variant_description|default:"—" }}</td>
+          <td>{{ line.quantity }}</td>
+          <td>₹{{ line.unit_price }}</td>
+          <td>{{ line.tax_rate_snapshot }}%</td>
+          <td>₹{{ line.subtotal }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="empty">No line items attached.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

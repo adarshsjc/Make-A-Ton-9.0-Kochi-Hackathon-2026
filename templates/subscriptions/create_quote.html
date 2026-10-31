@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}New Quotation · Subscriptions{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">QUOTATION BUILDER</p>
+    <h1>Generate Customer Quotation</h1>
+    <p class="muted">Select customer, subscription plan, base product, variant and quantity to calculate quote totals.</p>
+  </div>
+  <div class="heading-actions">
+    <a href="{% url 'subscription-list' %}" class="button button-secondary">← Cancel & Back</a>
+  </div>
+</section>
+
+<section class="panel" style="max-width: 640px;">
+  <div class="panel-heading">
+    <h2>Quotation Details</h2>
+  </div>
+  <form method="post" action="{% url 'quotation-create' %}">
+    {% csrf_token %}
+    <div style="margin-bottom: 14px;">
+      <label class="small muted" style="display:block; margin-bottom:4px;">Customer</label>
+      <select name="customer_id" required style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;">
+        <option value="">Select Customer...</option>
+        {% for c in customers %}
+          <option value="{{ c.id }}">{{ c.full_name|default:c.email }} ({{ c.email }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="margin-bottom: 14px;">
+      <label class="small muted" style="display:block; margin-bottom:4px;">Subscription Plan</label>
+      <select name="plan_id" required style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;">
+        <option value="">Select Plan...</option>
+        {% for p in plans %}
+          <option value="{{ p.id }}">{{ p.name }} — ₹{{ p.price }} / {{ p.get_billing_interval_display }} (Min Qty: {{ p.minimum_quantity }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 14px;">
+      <div>
+        <label class="small muted" style="display:block; margin-bottom:4px;">Product</label>
+        <select name="product_id" required style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;">
+          <option value="">Select Product...</option>
+          {% for prod in products %}
+            <option value="{{ prod.id }}">{{ prod.name }} (₹{{ prod.sale_price }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="small muted" style="display:block; margin-bottom:4px;">Variant (Optional)</label>
+        <select name="variant_id" style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;">
+          <option value="">No Variant</option>
+          {% for prod in products %}
+            {% for v in prod.variants.all %}
+              <option value="{{ v.id }}">{{ prod.name }} - {{ v.name }} (+₹{{ v.price_adjustment }})</option>
+            {% endfor %}
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+      <div>
+        <label class="small muted" style="display:block; margin-bottom:4px;">Quantity</label>
+        <input type="number" name="quantity" value="1" min="1" required style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;">
+      </div>
+      <div>
+        <label class="small muted" style="display:block; margin-bottom:4px;">Tax Rule</label>
+        <select name="tax_id" style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;">
+          <option value="">No Tax</option>
+          {% for t in taxes %}
+            <option value="{{ t.id }}">{{ t.name }} ({{ t.rate }}%)</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 18px;">
+      <label class="small muted" style="display:block; margin-bottom:4px;">Internal Notes (Optional)</label>
+      <textarea name="notes" rows="2" style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;"></textarea>
+    </div>
+
+    <button type="submit" class="button button-primary" style="width:100%;">Generate Quotation</button>
+  </form>
+</section>
+{% endblock %}

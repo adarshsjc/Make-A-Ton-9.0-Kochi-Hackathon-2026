@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.utils import timezone
 from rest_framework import serializers
 from accounts.models import User
@@ -11,31 +12,51 @@ class QuotationTemplateLineSerializer(serializers.ModelSerializer):
 
 class QuotationTemplateSerializer(serializers.ModelSerializer):
     lines = QuotationTemplateLineSerializer(many=True, read_only=True)
+    plan_name = serializers.CharField(source="plan.name", read_only=True)
+
     class Meta:
         model = QuotationTemplate
-        fields = ["id", "name", "plan", "validity_days", "is_active", "created_at", "lines"]
+        fields = ["id", "name", "plan", "plan_name", "validity_days", "is_active", "created_at", "lines"]
         read_only_fields = ["id", "created_at"]
 
 class QuotationLineSerializer(serializers.ModelSerializer):
+    subtotal = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+
     class Meta:
         model = QuotationLine
-        fields = ["id", "product", "variant", "product_name", "variant_description", "quantity", "unit_price", "tax", "tax_rate_snapshot"]
+        fields = [
+            "id", "product", "variant", "product_name", "variant_description",
+            "quantity", "unit_price", "tax", "tax_rate_snapshot", "subtotal"
+        ]
         read_only_fields = fields
 
 class QuotationSerializer(serializers.ModelSerializer):
     lines = QuotationLineSerializer(many=True, read_only=True)
+    customer_email = serializers.EmailField(source="customer.email", read_only=True)
+    customer_name = serializers.CharField(source="customer.full_name", read_only=True)
+    plan_name = serializers.CharField(source="plan.name", read_only=True)
+    total_amount = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+
     class Meta:
         model = Quotation
-        fields = ["id", "number", "customer", "template", "created_by", "created_at", "valid_until", "status", "notes", "lines"]
-        read_only_fields = ["id", "number", "created_by", "created_at", "status", "lines"]
+        fields = [
+            "id", "number", "customer", "customer_email", "customer_name",
+            "plan", "plan_name", "template", "created_by", "created_at",
+            "start_date", "valid_until", "status", "notes", "total_amount", "lines"
+        ]
+        read_only_fields = ["id", "number", "created_by", "created_at", "status", "total_amount", "lines"]
 
 class SubscriptionLineSerializer(serializers.ModelSerializer):
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    subtotal = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
 
     class Meta:
         model = SubscriptionLine
-        fields = ["id", "product", "variant", "product_name", "variant_description", "quantity", "unit_price", "tax", "tax_rate_snapshot"]
-        read_only_fields = ["id", "product_name", "variant_description", "unit_price", "tax_rate_snapshot"]
+        fields = [
+            "id", "product", "variant", "product_name", "variant_description",
+            "description_snapshot", "quantity", "unit_price", "tax", "tax_rate_snapshot", "subtotal"
+        ]
+        read_only_fields = ["id", "product_name", "variant_description", "description_snapshot", "unit_price", "tax_rate_snapshot", "subtotal"]
 
     def validate(self, attrs):
         product = attrs.get("product")
@@ -53,12 +74,22 @@ class SubscriptionLineSerializer(serializers.ModelSerializer):
 class SubscriptionSerializer(serializers.ModelSerializer):
     lines = SubscriptionLineSerializer(many=True, required=False)
     customer_email = serializers.EmailField(source="customer.email", read_only=True)
+    customer_name = serializers.CharField(source="customer.full_name", read_only=True)
     plan_name = serializers.CharField(source="plan.name", read_only=True)
+    payment_terms = serializers.IntegerField(source="payment_terms_days", required=False)
 
     class Meta:
         model = Subscription
-        fields = ["id", "number", "customer", "customer_email", "plan", "plan_name", "quotation", "created_by", "start_date", "expiry_date", "next_billing_date", "payment_terms_days", "status", "created_at", "updated_at", "notes", "lines"]
-        read_only_fields = ["id", "number", "created_by", "status", "created_at", "updated_at", "next_billing_date"]
+        fields = [
+            "id", "number", "customer", "customer_email", "customer_name",
+            "plan", "plan_name", "plan_price_snapshot", "quotation", "created_by",
+            "start_date", "expiry_date", "next_billing_date", "payment_terms_days", "payment_terms",
+            "status", "created_at", "updated_at", "activated_at", "closed_at", "notes", "lines"
+        ]
+        read_only_fields = [
+            "id", "number", "created_by", "status", "created_at",
+            "updated_at", "next_billing_date", "activated_at", "closed_at"
+        ]
 
     def validate(self, attrs):
         plan = attrs.get("plan", getattr(self.instance, "plan", None))
@@ -88,16 +119,23 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         lines_data = validated_data.pop("lines", [])
         request = self.context.get("request")
-        validated_data["created_by"] = request.user
+        if request and request.user.is_authenticated:
+            validated_data["created_by"] = request.user
+        plan = validated_data.get("plan")
+        if "plan_price_snapshot" not in validated_data and plan:
+            validated_data["plan_price_snapshot"] = plan.price
+
         subscription = Subscription.objects.create(**validated_data)
         for item in lines_data:
             product = item["product"]
             variant = item.get("variant")
             tax = item.get("tax")
             item["product_name"] = product.name
-            item["variant_description"] = f"{variant.attribute_name}: {variant.value}" if variant else ""
-            item["unit_price"] = product.sale_price + (variant.price_adjustment if variant else 0)
-            item["tax_rate_snapshot"] = tax.rate if tax else 0
+            var_desc = f"{variant.attribute_name}: {variant.value}" if variant else ""
+            item["variant_description"] = var_desc
+            item["description_snapshot"] = f"{product.name} ({var_desc})" if var_desc else product.name
+            item["unit_price"] = product.sale_price + (variant.price_adjustment if variant else Decimal("0.00"))
+            item["tax_rate_snapshot"] = tax.rate if tax else Decimal("0.00")
             SubscriptionLine.objects.create(subscription=subscription, **item)
         return subscription
 
@@ -115,9 +153,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             instance.lines.all().delete()
             for item in lines_data:
                 product, variant, tax = item["product"], item.get("variant"), item.get("tax")
+                var_desc = f"{variant.attribute_name}: {variant.value}" if variant else ""
                 item["product_name"] = product.name
-                item["variant_description"] = f"{variant.attribute_name}: {variant.value}" if variant else ""
-                item["unit_price"] = product.sale_price + (variant.price_adjustment if variant else 0)
-                item["tax_rate_snapshot"] = tax.rate if tax else 0
+                item["variant_description"] = var_desc
+                item["description_snapshot"] = f"{product.name} ({var_desc})" if var_desc else product.name
+                item["unit_price"] = product.sale_price + (variant.price_adjustment if variant else Decimal("0.00"))
+                item["tax_rate_snapshot"] = tax.rate if tax else Decimal("0.00")
                 SubscriptionLine.objects.create(subscription=instance, **item)
         return instance

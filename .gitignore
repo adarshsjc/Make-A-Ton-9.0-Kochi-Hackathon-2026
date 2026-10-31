@@ -79,3 +79,16 @@ desktop.ini
 *.swp
 *.swo
 *~
+
+# Local tools & clutter
+.agents/
+skills-lock.json
+brightloop_subscription_starter/
+*.local.md
+INTEGRATION_CONTRACT_MEMBER_B.md
+TEAM_CONTRACT.md
+README3.md
+AI_HANDOFF.md
+PROJECT_STATUS.md
+.gitignore.local
+setup_brightloop_windows.ps1
