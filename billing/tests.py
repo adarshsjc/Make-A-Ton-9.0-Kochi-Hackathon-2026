@@ -950,6 +950,42 @@ class HtmlViewPermissionTests(TestCase):
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.status, Invoice.Status.PAID)
 
+    def test_run_billing_html_post_staff(self):
+        c = Client()
+        c.force_login(self.staff)
+        resp = c.post(reverse("billing-run"))
+        self.assertRedirects(resp, reverse("billing-invoice-list"))
+
+    def test_run_billing_html_post_with_next(self):
+        c = Client()
+        c.force_login(self.staff)
+        resp = c.post(reverse("billing-run"), {"next": reverse("finance-dashboard")})
+        self.assertRedirects(resp, reverse("finance-dashboard"))
+
+    def test_run_billing_html_post_admin(self):
+        c = Client()
+        c.force_login(self.admin)
+        resp = c.post(reverse("billing-run"))
+        self.assertRedirects(resp, reverse("billing-invoice-list"))
+
+    def test_run_billing_html_post_customer_blocked(self):
+        c = Client()
+        c.force_login(self.customer)
+        resp = c.post(reverse("billing-run"))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_run_billing_html_get_method_not_allowed(self):
+        c = Client()
+        c.force_login(self.staff)
+        resp = c.get(reverse("billing-run"))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_billing_root_redirect(self):
+        c = Client()
+        c.force_login(self.staff)
+        resp = c.get("/billing/")
+        self.assertRedirects(resp, reverse("billing-invoice-list"))
+
 
 # ---------------------------------------------------------------------------
 # 11. Discount rule form / CRUD

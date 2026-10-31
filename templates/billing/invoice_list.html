@@ -8,6 +8,12 @@
     <p class="muted">All customer invoices across subscriptions.</p>
   </div>
   <div class="heading-actions">
+    {% if request.user.role != "CUSTOMER" or request.user.is_superuser %}
+      <form method="post" action="{% url 'billing-run' %}">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="button button-primary" type="submit">Run billing</button>
+      </form>
+    {% endif %}
     <a class="button button-secondary" href="{% url 'finance-dashboard' %}">Finance overview</a>
     <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Discounts</a>
   </div>

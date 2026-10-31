@@ -296,6 +296,21 @@ class InvoiceSendView(StaffOrAdminRequiredMixin, View):
         return redirect("billing-invoice-detail", pk=pk)
 
 
+class RunBillingHTMLView(StaffOrAdminRequiredMixin, View):
+    """POST-only HTML endpoint for staff/admin to trigger a manual billing run."""
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        result = run_billing(actor=request.user)
+        invoices_created = result.get("invoices_created", 0)
+        messages.success(
+            request,
+            f"Billing run completed. {invoices_created} invoice{'s' if invoices_created != 1 else ''} generated.",
+        )
+        next_url = request.POST.get("next") or request.GET.get("next") or "billing-invoice-list"
+        return redirect(next_url)
+
+
 def _send_invoice_email(invoice, request):
     """Send a simple invoice notification email using the configured backend."""
     try:

@@ -238,7 +238,7 @@ def _get_finance_summary_filtered(
     }
 
 
-def run_billing(*, billing_date=None):
+def run_billing(*, billing_date=None, actor=None):
     today = billing_date or timezone.localdate()
     due_ids = list(Subscription.objects.filter(
         status=Subscription.Status.ACTIVE,

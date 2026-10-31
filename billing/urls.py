@@ -21,6 +21,7 @@ from .views import (
     InvoicePaymentView,
     InvoicePrintView,
     InvoiceSendView,
+    RunBillingHTMLView,
 )
 
 # DRF router for API viewsets

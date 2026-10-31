@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from accounts.views import RegisterPageView
 from .api_views import APIIndexView
@@ -19,6 +20,7 @@ from billing.views import (
     InvoicePaymentView,
     InvoicePrintView,
     InvoiceSendView,
+    RunBillingHTMLView,
 )
 
 urlpatterns = [
@@ -46,6 +48,8 @@ urlpatterns = [
     path("api/v1/", include("dashboard.api_urls")),
 
     # HTML screens – Billing / Finance
+    path("billing/", RedirectView.as_view(pattern_name="billing-invoice-list", permanent=False)),
+    path("billing/run/", RunBillingHTMLView.as_view(), name="billing-run"),
     path("billing/invoices/", InvoiceListView.as_view(), name="billing-invoice-list"),
     path("billing/invoices/<int:pk>/", InvoiceDetailView.as_view(), name="billing-invoice-detail"),
     path("billing/invoices/<int:pk>/confirm/", InvoiceConfirmView.as_view(), name="billing-invoice-confirm"),
