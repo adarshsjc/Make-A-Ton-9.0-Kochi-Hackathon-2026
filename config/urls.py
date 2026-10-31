@@ -23,6 +23,14 @@ from billing.views import (
     RunBillingHTMLView,
 )
 
+# Catalog & Subscriptions HTML views
+from catalog.web_views import ProductListView, PlanListView
+from subscriptions.web_views import (
+    SubscriptionListView,
+    SubscriptionDetailView,
+    QuotationCreateView,
+)
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("dashboard.urls")),
@@ -47,6 +55,16 @@ urlpatterns = [
     path("api/v1/", include("subscriptions.urls")),
     path("api/v1/", include("billing.urls")),
     path("api/v1/", include("dashboard.api_urls")),
+
+    # HTML screens – Catalog
+    path("catalog/", RedirectView.as_view(pattern_name="catalog-product-list", permanent=False)),
+    path("catalog/products/", ProductListView.as_view(), name="catalog-product-list"),
+    path("catalog/plans/", PlanListView.as_view(), name="catalog-plan-list"),
+
+    # HTML screens – Subscriptions
+    path("subscriptions/", SubscriptionListView.as_view(), name="subscription-list"),
+    path("subscriptions/<int:pk>/", SubscriptionDetailView.as_view(), name="subscription-detail"),
+    path("subscriptions/quotations/new/", QuotationCreateView.as_view(), name="quotation-create"),
 
     # HTML screens – Billing / Finance
     path("billing/", RedirectView.as_view(pattern_name="billing-invoice-list", permanent=False)),

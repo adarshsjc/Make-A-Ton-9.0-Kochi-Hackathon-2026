@@ -12,29 +12,76 @@
     {% if request.user.is_authenticated %}
       <nav class="topnav">
         <a href="{% url 'dashboard-home' %}">Overview</a>
-	{% include "includes/account_nav_links.html" %}
-
+        {% include "includes/account_nav_links.html" %}
         {% if request.user.role != "CUSTOMER" or request.user.is_superuser %}
           <a href="{% url 'finance-dashboard' %}">Finance</a>
+          <a href="{% url 'catalog-product-list' %}">Catalog</a>
+          <a href="{% url 'subscription-list' %}">Subscriptions</a>
           <a href="{% url 'billing-invoice-list' %}">Invoices</a>
-          <a href="{% url 'billing-discount-list' %}">Discounts</a>
+        {% else %}
+          <a href="{% url 'subscription-list' %}">My Subscriptions</a>
+          <a href="{% url 'billing-invoice-list' %}">My Invoices</a>
         {% endif %}
-
-        {% if request.user.is_staff %}
-		<a href="/admin/">Admin console</a>
-	{% endif %}
-
-        <a href="/api/v1/">API</a>
+        {% if request.user.is_staff %}<a href="/admin/">Admin console</a>{% endif %}
+        <a href="{% url 'api-root' %}">API</a>
       </nav>
-      <div class="user-menu"><span>{{ request.user.full_name|default:request.user.email }}</span>
+      <div class="user-menu">
+        <span>{{ request.user.full_name|default:request.user.email }} (<strong>{{ request.user.role }}</strong>)</span>
         <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="button button-quiet" type="submit">Sign out</button></form>
       </div>
     {% endif %}
   </header>
-  <main class="page-shell">
-    {% if messages %}<div class="messages">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
-    {% block content %}{% endblock %}
-  </main>
+
+  <div class="app-layout">
+    {% if request.user.is_authenticated %}
+      <aside class="sidebar">
+        {% if request.user.role == "CUSTOMER" %}
+          <!-- Client / Customer Navigation -->
+          <div class="sidebar-group">
+            <div class="sidebar-title">Client Portal</div>
+            <a href="{% url 'dashboard-home' %}" class="sidebar-link {% if request.path == '/' %}active{% endif %}">◫ Overview</a>
+            <a href="{% url 'subscription-list' %}" class="sidebar-link {% if '/subscriptions/' in request.path %}active{% endif %}">◷ My Subscriptions</a>
+            <a href="{% url 'billing-invoice-list' %}" class="sidebar-link {% if '/billing/' in request.path %}active{% endif %}">▤ My Invoices</a>
+          </div>
+        {% else %}
+          <!-- Admin & Worker (Staff) Navigation -->
+          <div class="sidebar-group">
+            <div class="sidebar-title">Dashboard</div>
+            <a href="{% url 'dashboard-home' %}" class="sidebar-link {% if request.path == '/' %}active{% endif %}">◫ Overview</a>
+            <a href="{% url 'finance-dashboard' %}" class="sidebar-link {% if '/finance/' in request.path %}active{% endif %}">📈 Finance Summary</a>
+          </div>
+
+          <div class="sidebar-group">
+            <div class="sidebar-title">Catalog</div>
+            <a href="{% url 'catalog-product-list' %}" class="sidebar-link {% if '/catalog/products/' in request.path %}active{% endif %}">▦ Products & Variants</a>
+            <a href="{% url 'catalog-plan-list' %}" class="sidebar-link {% if '/catalog/plans/' in request.path %}active{% endif %}">↻ Subscription Plans</a>
+          </div>
+
+          <div class="sidebar-group">
+            <div class="sidebar-title">Subscriptions</div>
+            <a href="{% url 'subscription-list' %}" class="sidebar-link {% if request.path == '/subscriptions/' or '/subscriptions/' in request.path and 'quotations/new' not in request.path %}active{% endif %}">◷ Subscriptions & Quotes</a>
+            <a href="{% url 'quotation-create' %}" class="sidebar-link {% if '/subscriptions/quotations/new/' in request.path %}active{% endif %}">✚ New Quotation</a>
+          </div>
+
+          <div class="sidebar-group">
+            <div class="sidebar-title">Billing & Invoices</div>
+            <a href="{% url 'billing-invoice-list' %}" class="sidebar-link {% if '/billing/invoices/' in request.path %}active{% endif %}">▤ Invoices & Payments</a>
+            <a href="{% url 'billing-discount-list' %}" class="sidebar-link {% if '/billing/discounts/' in request.path %}active{% endif %}">🏷 Discount Rules</a>
+            <form method="post" action="{% url 'billing-run' %}" style="margin-top: 4px;">
+              {% csrf_token %}
+              <button type="submit" class="button button-secondary" style="width: 100%; font-size: 11px; padding: 6px 10px;">⚡ Run Due Billing</button>
+            </form>
+          </div>
+        {% endif %}
+      </aside>
+    {% endif %}
+
+    <main class="page-shell" style="flex: 1;">
+      {% if messages %}<div class="messages">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
   <footer class="footer">Brightloop · Subscription operations workspace</footer>
 </body>
 </html>

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Subscriptions & Quotations{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">LIFECYCLE MANAGEMENT</p>
+    <h1>Subscriptions & Quotations</h1>
+    <p class="muted">Monitor customer subscriptions, view agreed quotes, and manage lifecycle state transitions.</p>
+  </div>
+  <div class="heading-actions">
+    {% if not is_customer %}
+      <a href="{% url 'quotation-create' %}" class="button button-primary">+ New Quotation</a>
+    {% endif %}
+    <a href="{% url 'dashboard-home' %}" class="button button-secondary">Overview</a>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Active Subscriptions</h2>
+    <span class="muted small">{{ subscriptions|length }} record(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Customer</th>
+          <th>Plan</th>
+          <th>Plan Price</th>
+          <th>Start Date</th>
+          <th>Next Billing</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in subscriptions %}
+        <tr>
+          <td><strong>{{ sub.number }}</strong></td>
+          <td>{{ sub.customer.full_name|default:sub.customer.email }}</td>
+          <td>{{ sub.plan.name }}</td>
+          <td>₹{{ sub.plan_price_snapshot }}</td>
+          <td>{{ sub.start_date }}</td>
+          <td>{{ sub.next_billing_date|default:"—" }}</td>
+          <td><span class="status">{{ sub.get_status_display }}</span></td>
+          <td>
+            <a href="{% url 'subscription-detail' pk=sub.id %}" class="button button-quiet">View Details →</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="empty">No subscriptions found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Quotations</h2>
+    <span class="muted small">{{ quotations|length }} quote(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Quote Number</th>
+          <th>Customer</th>
+          <th>Plan</th>
+          <th>Total Value</th>
+          <th>Valid Until</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in quotations %}
+        <tr>
+          <td><strong>{{ q.number }}</strong></td>
+          <td>{{ q.customer.full_name|default:q.customer.email }}</td>
+          <td>{{ q.plan_name }}</td>
+          <td>₹{{ q.total_amount }}</td>
+          <td>{{ q.valid_until }}</td>
+          <td><span class="status">{{ q.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="empty">No quotations generated yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
