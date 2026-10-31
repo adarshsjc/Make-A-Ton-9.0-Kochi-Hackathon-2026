@@ -158,7 +158,87 @@ def generate_invoice_for_subscription(subscription_id, *, billing_date=None):
     subscription.save(update_fields=["next_billing_date", "updated_at"])
     return invoice, True
 
-def run_billing(*, billing_date=None):
+def _get_finance_summary_filtered(
+    *,
+    start_date=None,
+    end_date=None,
+    status_filter=None,
+    overdue_only=False,
+    search=None,
+):
+    """Return filtered finance summary data for the HTML finance dashboard."""
+    from django.db.models import ExpressionWrapper, F, Sum, Value, DecimalField
+    from django.db.models.functions import Coalesce
+    from accounts.models import User
+    from subscriptions.models import Subscription
+    from django.db.models import Q
+
+    ZERO = Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    today = timezone.localdate()
+
+    invoices = Invoice.objects.select_related("customer", "subscription").prefetch_related(
+        "payments"
+    ).exclude(status=Invoice.Status.CANCELLED)
+
+    if start_date:
+        invoices = invoices.filter(issue_date__gte=start_date)
+    if end_date:
+        invoices = invoices.filter(issue_date__lte=end_date)
+    if status_filter:
+        invoices = invoices.filter(status=status_filter)
+    if search:
+        invoices = invoices.filter(
+            Q(number__icontains=search)
+            | Q(customer__email__icontains=search)
+            | Q(customer__full_name__icontains=search)
+            | Q(subscription__number__icontains=search)
+        )
+    if overdue_only:
+        invoices = invoices.filter(status=Invoice.Status.CONFIRMED, due_date__lt=today)
+
+    payments_qs = Payment.objects.all()
+    if start_date:
+        payments_qs = payments_qs.filter(payment_date__gte=start_date)
+    if end_date:
+        payments_qs = payments_qs.filter(payment_date__lte=end_date)
+
+    collected = payments_qs.aggregate(total=Coalesce(Sum("amount"), ZERO))["total"]
+
+    confirmed_qs = invoices.filter(
+        status__in=[Invoice.Status.CONFIRMED, Invoice.Status.PAID]
+    ).annotate(
+        paid=Coalesce(Sum("payments__amount"), ZERO)
+    ).annotate(
+        balance=ExpressionWrapper(
+            F("total") - F("paid"),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
+    )
+    outstanding = confirmed_qs.filter(balance__gt=0).aggregate(
+        total=Coalesce(Sum("balance"), ZERO)
+    )["total"]
+    overdue_amount = confirmed_qs.filter(due_date__lt=today, balance__gt=0).aggregate(
+        total=Coalesce(Sum("balance"), ZERO)
+    )["total"]
+
+    paginator_qs = invoices.order_by("-issue_date", "-id")
+
+    return {
+        "active_subscriptions": Subscription.objects.filter(
+            status=Subscription.Status.ACTIVE
+        ).count(),
+        "total_customers": User.objects.filter(
+            role=User.Role.CUSTOMER, is_active=True
+        ).count(),
+        "revenue_collected": collected,
+        "outstanding_amount": outstanding,
+        "overdue_amount": overdue_amount,
+        "overdue_invoice_count": confirmed_qs.filter(due_date__lt=today, balance__gt=0).count(),
+        "invoice_queryset": paginator_qs,
+    }
+
+
+def run_billing(*, billing_date=None, actor=None):
     today = billing_date or timezone.localdate()
     due_ids = list(Subscription.objects.filter(
         status=Subscription.Status.ACTIVE,

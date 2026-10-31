@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Delete Discount Rule{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">DISCOUNT RULES</p>
+    <h1>Delete rule</h1>
+  </div>
+</section>
+<div class="auth-card" style="max-width:480px">
+  <p>Are you sure you want to permanently delete the discount rule <strong>"{{ rule.name }}"</strong>?</p>
+  <p class="muted small">This action cannot be undone. Rules that have been redeemed cannot be deleted — deactivate them instead.</p>
+  <form method="post" style="display:flex;gap:10px;margin-top:18px">
+    {% csrf_token %}
+    <button class="button button-primary" type="submit" style="background:#a83232;border-color:#a83232">Delete permanently</button>
+    <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}
