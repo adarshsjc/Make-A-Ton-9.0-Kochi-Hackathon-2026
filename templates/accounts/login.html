@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <p class="eyebrow">WELCOME BACK</p><h1>Sign in to Brightloop</h1><p class="muted">Manage subscriptions, billing and customer accounts.</p>
+  <form method="post">{% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <label for="id_username">Email address</label>{{ form.username }}{{ form.username.errors }}
+    <label for="id_password">Password</label>{{ form.password }}{{ form.password.errors }}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="button button-primary button-full" type="submit">Sign in</button>
+  </form>
+  <div class="auth-links"><a href="{% url 'password_reset' %}">Forgot password?</a><a href="{% url 'register' %}">Create customer account</a></div>
+</section>
+{% endblock %}
