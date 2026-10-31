@@ -12,6 +12,7 @@
     {% if request.user.is_authenticated %}
       <nav class="topnav">
         <a href="{% url 'dashboard-home' %}">Overview</a>
+        {% include "includes/account_nav_links.html" %}
         {% if request.user.role != "CUSTOMER" or request.user.is_superuser %}
           <a href="{% url 'finance-dashboard' %}">Finance</a>
           <a href="{% url 'catalog-product-list' %}">Catalog</a>
@@ -21,7 +22,7 @@
           <a href="{% url 'subscription-list' %}">My Subscriptions</a>
           <a href="{% url 'billing-invoice-list' %}">My Invoices</a>
         {% endif %}
-        {% if request.user.is_superuser %}<a href="/admin/">Admin console</a>{% endif %}
+        {% if request.user.is_staff %}<a href="/admin/">Admin console</a>{% endif %}
         <a href="{% url 'api-root' %}">API</a>
       </nav>
       <div class="user-menu">

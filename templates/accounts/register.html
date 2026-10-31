@@ -1,7 +1,21 @@
-{% extends "base.html" %}{% block title %}Create account{% endblock %}
-{% block content %}<section class="auth-card"><p class="eyebrow">CUSTOMER PORTAL</p><h1>Create your account</h1>
-<form method="post">{% csrf_token %}
-  {% for field in form %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="field-error">{{ field.errors }}</div>{% endif %}{% endfor %}
-  <p class="muted small">Password must be at least 9 characters and include uppercase, lowercase and a special character.</p>
-  <button class="button button-primary button-full" type="submit">Create account</button>
-</form><div class="auth-links"><a href="{% url 'login' %}">Already registered? Sign in</a></div></section>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <p class="eyebrow">CUSTOMER PORTAL</p>
+  <h1>Create your account</h1>
+  <p class="muted">Register your company to manage subscriptions and billing.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<div class="field-error">{{ field.errors }}</div>{% endif %}
+    {% endfor %}
+    <p class="muted small">Password must be at least 9 characters and include uppercase, lowercase and a special character.</p>
+    <button class="button button-primary button-full" type="submit">Create account</button>
+  </form>
+  <div class="auth-links"><a href="{% url 'login' %}">Already registered? Sign in</a></div>
+</section>
+{% endblock %}
