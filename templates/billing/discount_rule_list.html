@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Discount Rules{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">BILLING</p>
+    <h1>Discount rules</h1>
+    <p class="muted">Manage fixed and percentage discount rules applied during billing.</p>
+  </div>
+  <div class="heading-actions">
+    <a class="button button-primary" href="{% url 'billing-discount-create' %}">+ New rule</a>
+    <a class="button button-secondary" href="{% url 'billing-invoice-list' %}">Invoices</a>
+  </div>
+</section>
+
+{# Filter bar #}
+<form method="get" class="panel" style="padding:14px 18px">
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Search</label>
+      <input name="q" value="{{ search }}" placeholder="Rule name…" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit;width:200px">
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Type</label>
+      <select name="discount_type" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+        <option value="">All</option>
+        {% for val, label in discount_type_choices %}
+          <option value="{{ val }}" {% if val == type_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Scope</label>
+      <select name="scope" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+        <option value="">All</option>
+        {% for val, label in scope_choices %}
+          <option value="{{ val }}" {% if val == scope_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Active</label>
+      <select name="is_active" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+        <option value="">All</option>
+        <option value="1" {% if active_filter == "1" %}selected{% endif %}>Active</option>
+        <option value="0" {% if active_filter == "0" %}selected{% endif %}>Inactive</option>
+      </select>
+    </div>
+    <button class="button button-primary" type="submit">Filter</button>
+    <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Clear</a>
+  </div>
+</form>
+
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Rules</h2>
+    <span class="muted small">{{ page_obj.paginator.count }} rule{{ page_obj.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Scope</th>
+          <th>Min purchase</th>
+          <th>Max uses</th>
+          <th>Uses</th>
+          <th>Valid from</th>
+          <th>Valid until</th>
+          <th>Active</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rule in page_obj %}
+        <tr>
+          <td><strong>{{ rule.name }}</strong></td>
+          <td>{{ rule.get_discount_type_display }}</td>
+          <td>{% if rule.discount_type == "PERCENTAGE" %}{{ rule.value }}%{% else %}₹{{ rule.value }}{% endif %}</td>
+          <td>{{ rule.get_scope_display }}</td>
+          <td>₹{{ rule.minimum_purchase }}</td>
+          <td>{{ rule.max_uses|default:"Unlimited" }}</td>
+          <td>{{ rule.times_used }}</td>
+          <td>{{ rule.valid_from }}</td>
+          <td>{{ rule.valid_until|default:"—" }}</td>
+          <td>{% if rule.is_active %}<span class="status">Active</span>{% else %}<span style="font-size:10px;color:var(--muted)">Inactive</span>{% endif %}</td>
+          <td style="white-space:nowrap">
+            <a href="{% url 'billing-discount-edit' rule.pk %}" class="text-link">Edit</a> ·
+            <a href="{% url 'billing-discount-delete' rule.pk %}" class="text-link" style="color:var(--warning)">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="11" class="empty">No discount rules found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div style="display:flex;gap:8px;justify-content:center;padding:16px 0">
+    {% if page_obj.has_previous %}
+      <a class="button button-secondary" href="?page={{ page_obj.previous_page_number }}">← Prev</a>
+    {% endif %}
+    <span style="font-size:12px;color:var(--muted);padding:10px">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="button button-secondary" href="?page={{ page_obj.next_page_number }}">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

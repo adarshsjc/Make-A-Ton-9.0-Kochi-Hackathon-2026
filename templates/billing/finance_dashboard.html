@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Finance Dashboard{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">FINANCE</p>
+    <h1>Finance dashboard</h1>
+    <p class="muted">Revenue, collections, outstanding and overdue — filtered by date range and status.</p>
+  </div>
+  <div class="heading-actions">
+    <a class="button button-secondary" href="{% url 'billing-invoice-list' %}">All invoices</a>
+    <a class="button button-secondary" href="{% url 'billing-discount-list' %}">Discounts</a>
+  </div>
+</section>
+
+{# Filter bar #}
+<form method="get" class="panel" style="padding:14px 18px;margin-bottom:18px">
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Search</label>
+      <input name="q" value="{{ search }}" placeholder="Invoice #, customer…" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit;width:200px">
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Status</label>
+      <select name="status" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+        <option value="">All</option>
+        {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Issue from</label>
+      <input type="date" name="start_date" value="{{ start_date_str }}" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Issue to</label>
+      <input type="date" name="end_date" value="{{ end_date_str }}" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:700;margin-bottom:4px">Overdue only</label>
+      <select name="overdue" style="padding:8px 10px;border:1px solid #d9e2df;border-radius:8px;font:inherit">
+        <option value="">All</option>
+        <option value="1" {% if overdue_filter == "1" %}selected{% endif %}>Overdue</option>
+      </select>
+    </div>
+    <button class="button button-primary" type="submit">Filter</button>
+    <a class="button button-secondary" href="{% url 'finance-dashboard' %}">Clear</a>
+  </div>
+</form>
+
+{# KPI metrics #}
+<section class="metric-grid" style="margin-bottom:18px">
+  <article class="metric-card">
+    <span>Active subscriptions</span>
+    <strong>{{ active_subscriptions|default:0 }}</strong>
+    <small>Currently active</small>
+  </article>
+  <article class="metric-card">
+    <span>Revenue collected</span>
+    <strong>₹{{ revenue_collected|default:"0.00" }}</strong>
+    <small>Recorded payments</small>
+  </article>
+  <article class="metric-card">
+    <span>Outstanding</span>
+    <strong>₹{{ outstanding_amount|default:"0.00" }}</strong>
+    <small>Unpaid confirmed invoices</small>
+  </article>
+  <article class="metric-card metric-warning">
+    <span>Overdue</span>
+    <strong>₹{{ overdue_amount|default:"0.00" }}</strong>
+    <small>{{ overdue_invoice_count|default:0 }} invoice{{ overdue_invoice_count|pluralize }} past due</small>
+  </article>
+</section>
+
+{# Invoice table #}
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Invoices</h2>
+    <span class="muted small">{{ page_obj.paginator.count }} result{{ page_obj.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Customer</th>
+          <th>Issue date</th>
+          <th>Due date</th>
+          <th>Total</th>
+          <th>Paid</th>
+          <th>Balance</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for invoice in page_obj %}
+        <tr>
+          <td><a href="{% url 'billing-invoice-detail' invoice.pk %}" class="text-link">{{ invoice.number }}</a></td>
+          <td>{{ invoice.customer.full_name|default:invoice.customer.email }}</td>
+          <td>{{ invoice.issue_date }}</td>
+          <td style="{% if invoice.is_overdue %}color:var(--warning);font-weight:700{% endif %}">{{ invoice.due_date }}</td>
+          <td>₹{{ invoice.total }}</td>
+          <td>₹{{ invoice.amount_paid }}</td>
+          <td>₹{{ invoice.balance_due }}</td>
+          <td><span class="status">{{ invoice.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty">No invoices match your filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div style="display:flex;gap:8px;justify-content:center;padding:16px 0">
+    {% if page_obj.has_previous %}
+      <a class="button button-secondary" href="?{% if search %}q={{ search }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if start_date_str %}start_date={{ start_date_str }}&{% endif %}{% if end_date_str %}end_date={{ end_date_str }}&{% endif %}{% if overdue_filter %}overdue={{ overdue_filter }}&{% endif %}page={{ page_obj.previous_page_number }}">← Prev</a>
+    {% endif %}
+    <span style="font-size:12px;color:var(--muted);padding:10px">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="button button-secondary" href="?{% if search %}q={{ search }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if start_date_str %}start_date={{ start_date_str }}&{% endif %}{% if end_date_str %}end_date={{ end_date_str }}&{% endif %}{% if overdue_filter %}overdue={{ overdue_filter }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
