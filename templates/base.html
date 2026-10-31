@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Brightloop{% endblock %} · Subscription Management</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{% url 'dashboard-home' %}"><span class="brand-mark">B</span><span>brightloop</span></a>
+    {% if request.user.is_authenticated %}
+      <nav class="topnav">
+        <a href="{% url 'dashboard-home' %}">Overview</a>
+        {% if request.user.is_superuser %}<a href="/admin/">Admin console</a>{% endif %}
+        <a href="/api/v1/">API</a>
+      </nav>
+      <div class="user-menu"><span>{{ request.user.full_name|default:request.user.email }}</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="button button-quiet" type="submit">Sign out</button></form>
+      </div>
+    {% endif %}
+  </header>
+  <main class="page-shell">
+    {% if messages %}<div class="messages">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="footer">Brightloop · Subscription operations workspace</footer>
+</body>
+</html>

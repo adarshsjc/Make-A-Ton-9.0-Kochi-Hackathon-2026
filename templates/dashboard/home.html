@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">{% if is_customer %}CUSTOMER PORTAL{% else %}BUSINESS OVERVIEW{% endif %}</p><h1>{% if is_customer %}Welcome, {{ request.user.full_name }}{% else %}Subscription overview{% endif %}</h1><p class="muted">{% if is_customer %}Your subscriptions and invoices in one place.{% else %}A live view of subscription activity and billing performance.{% endif %}</p></div><div class="heading-actions">{% if not is_customer %}<form method="post" action="/api/v1/billing/run/">{% csrf_token %}<button class="button button-primary" type="submit">Run due billing</button></form>{% if request.user.is_superuser %}<a class="button button-secondary" href="/admin/">Open admin</a>{% endif %}{% endif %}</div></section>
+{% if is_customer %}
+  <section class="panel"><div class="panel-heading"><h2>Your subscriptions</h2><span class="muted small">Latest 8</span></div><div class="table-wrap"><table><thead><tr><th>Number</th><th>Plan</th><th>Status</th><th>Next billing</th></tr></thead><tbody>{% for sub in customer_subscriptions %}<tr><td>{{ sub.number }}</td><td>{{ sub.plan.name }}</td><td><span class="status">{{ sub.get_status_display }}</span></td><td>{{ sub.next_billing_date|default:"—" }}</td></tr>{% empty %}<tr><td colspan="4" class="empty">No subscriptions yet.</td></tr>{% endfor %}</tbody></table></div></section>
+  <section class="panel"><div class="panel-heading"><h2>Your invoices</h2><span class="muted small">Latest 8</span></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for invoice in customer_invoices %}<tr><td>{{ invoice.number }}</td><td>{{ invoice.issue_date }}</td><td>{{ invoice.due_date }}</td><td>₹{{ invoice.total }}</td><td>{{ invoice.get_status_display }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">No invoices yet.</td></tr>{% endfor %}</tbody></table></div></section>
+{% else %}
+  <section class="metric-grid">
+    <article class="metric-card"><span>Active subscriptions</span><strong>{{ active_subscriptions|default:0 }}</strong><small>Currently active</small></article>
+    <article class="metric-card"><span>Revenue collected</span><strong>₹{{ revenue_collected|default:"0.00" }}</strong><small>Recorded payments</small></article>
+    <article class="metric-card"><span>Outstanding</span><strong>₹{{ outstanding_amount|default:"0.00" }}</strong><small>Unpaid confirmed invoices</small></article>
+    <article class="metric-card metric-warning"><span>Overdue</span><strong>₹{{ overdue_amount|default:"0.00" }}</strong><small>{{ overdue_invoice_count|default:0 }} invoices overdue</small></article>
+  </section>
+  <section class="quick-grid">
+    <a class="quick-card" href="/api/v1/products/"><span class="quick-icon">▦</span><strong>Products</strong><small>Catalogue API and records</small></a>
+    <a class="quick-card" href="/api/v1/plans/"><span class="quick-icon">↻</span><strong>Plans</strong><small>Recurring plan catalogue</small></a>
+    <a class="quick-card" href="/api/v1/subscriptions/"><span class="quick-icon">◷</span><strong>Subscriptions</strong><small>Customer subscriptions and lifecycle</small></a>
+    <a class="quick-card" href="/api/v1/invoices/"><span class="quick-icon">▤</span><strong>Invoices</strong><small>Invoices and payments</small></a>
+  </section>
+  <section class="panel"><div class="panel-heading"><h2>Recent invoices</h2><a href="/api/v1/invoices/" class="text-link">View API →</a></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for invoice in recent_invoices %}<tr><td>{{ invoice.number }}</td><td>{{ invoice.customer.email }}</td><td>{{ invoice.issue_date }}</td><td>{{ invoice.due_date }}</td><td>₹{{ invoice.total }}</td><td><span class="status">{{ invoice.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6" class="empty">No invoices yet. Run the billing workflow to generate the first one.</td></tr>{% endfor %}</tbody></table></div></section>
+  <p class="hint">The dashboard reads from PostgreSQL. Use the API endpoints or Django admin to manage records while the team builds the dedicated workflows.</p>
+{% endif %}
+{% endblock %}
